@@ -83,14 +83,14 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--outdir` | Specifies the output driectory (default: ./results). |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
-| `multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowset qvalue). Default is: concentrate.|
+| `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowset qvalue). Default is: concentrate.|
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argumnet. Requires specification of path to annotated 2D-bed by using the argumnet `--bed2D_anno`. |
 | `--annotate_interactions` | Specifes if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | `--network` | Specifes if files for network visualization in Cytoskape should be created. Only valid if `--complete` is set to false. |
 | `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a genelist, provided by `--genes`). |
 | `--complete` | If set to true (default), all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating promblems. Default: false.
-| `help` | Help message is shown. |
+| `--help` | Help message is shown. |
 
 ### Basic mode
 Add text here???
