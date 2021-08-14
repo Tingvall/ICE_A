@@ -64,7 +64,7 @@ nextflow run PLAC_anno_2.nf --help
 | Input | Description |
 | --- | --- |
 | `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Textfile with genenames (specify???), that is used for filtering of interactions associated with the specified genes. The filitering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visulaization (if `--network_mode` is set to `genes`). |
-| `bed2D_anno` | Specifies path to annotated 2D-bed file if `skip_anno` is used. |
+| `--bed2D_anno` | Specifies path to annotated 2D-bed file if `--skip_anno` is used. |
 
 ## Running the pipeline
 
