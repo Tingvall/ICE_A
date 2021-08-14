@@ -33,16 +33,12 @@ else{
   ch_bed2D = Channel.empty()
 }
 
-if (!params.skip_overlap) {
-  if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
+if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
     ch_peaks
         .splitCsv(header:true, sep:'\t')
         .map { row -> [ row.peak_name, [ file(row.peak_file) ] ] }
         .set { ch_peaks_split}
-}
-else{
-  ch_peaks = Channel.empty()
-}
+
 
 if (params.network && params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
@@ -66,9 +62,8 @@ println ("""
         2D-bed: ${params.bed2D}
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
-        Skip overlap: ${params.skip_overlap}
         Peak file:  ${params.peaks}
-        Proximity annotate unannotated distal regions: ${params.unannotated}
+        Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
         Basic Annotation mode:
@@ -93,9 +88,8 @@ println ("""
         2D-bed: ${params.bed2D}
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
-        Skip overlap: ${params.skip_overlap}
         Peak file:  ${params.peaks}
-        Proximity annotate unannotated distal regions: ${params.unannotated}
+        Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
         Multiple Annotation mode:
@@ -122,9 +116,8 @@ println ("""
         2D-bed: ${params.bed2D}
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
-        Skip overlap: ${params.skip_overlap}
         Peak file:  ${params.peaks}
-        Proximity annotate unannotated distal regions: ${params.unannotated}
+        Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
         ===========================================================================================
@@ -136,7 +129,7 @@ println ("""
  * 1. 2D-BED SPLIT: SPLIT 2D-BED FILE INTO 2 BED FILES FOR ANNOTATION
  */
 process BED2D_SPLIT {
-    publishDir "${params.outdir}/tmp/process1", mode: 'copy'
+    publishDir "${params.outdir}/tmp/process1", mode: 'copy', enabled: params.save_tmp
 
 
     when:
@@ -164,7 +157,7 @@ process BED2D_SPLIT {
  * 2. HOMER ANNOTATION PLAC-seq: ANNOTATION OF EACH ANCHOR REGION USING HOMER
  */
 process ANNOTATE_INTERACTION {
-    publishDir "${params.outdir}/tmp/process2", mode: 'copy'
+    publishDir "${params.outdir}/tmp/process2", mode: 'copy', enabled: params.save_tmp
 
     when:
     !params.skip_anno
@@ -189,7 +182,7 @@ process ANNOTATE_INTERACTION {
  * 3. MERGE ANNOTATED ANCHOR REGIONS
  */
 process JOIN_ANNOTATED_INTERACTIONS {
-    publishDir "${params.outdir}/tmp/process3", mode: 'copy'
+    publishDir "${params.outdir}/tmp/process3", mode: 'copy', enabled: params.save_tmp
     publishDir "${params.outdir}/Interaction_Annotation/", mode: 'copy', enabled: params.annotate_interactions | params.complete
 
     when:
@@ -202,7 +195,7 @@ process JOIN_ANNOTATED_INTERACTIONS {
     val prefix from Channel.value(params.prefix)
 
     output:
-    path "${prefix}_HOMER_annotation_PLACseq_interactions.txt" into ch_bed2D_anno
+    path "${prefix}_HOMER_annotated_interactions.txt" into ch_bed2D_anno
 
     script:
     """
@@ -227,7 +220,7 @@ process JOIN_ANNOTATED_INTERACTIONS {
 
     anchor_merge['TSS_1'] = np.where(abs(anchor_merge['Distance_to_TSS_1']) <= 2500, 1, 0)
     anchor_merge['TSS_2'] = np.where(abs(anchor_merge['Distance_to_TSS_2']) <= 2500, 1, 0)
-    anchor_merge.to_csv("${prefix}_HOMER_annotation_PLACseq_interactions.txt", index=True, sep='\t' )
+    anchor_merge.to_csv("${prefix}_HOMER_annotated_interactions.txt", index=True, sep='\t' )
     """
 }
 
@@ -239,11 +232,7 @@ if (params.skip_anno) {
    * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
    */
   process ANNOTATE_PEAKS {
-      publishDir "${params.outdir}/tmp/process4", mode: 'copy'
-
-
-      when:
-      !params.skip_overlap
+      publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
 
       input:
       tuple val(peak_name), path(peak_file) from ch_peaks_split
@@ -265,10 +254,7 @@ if (params.skip_anno) {
    * 5. SPLIT ANNOTATED 2D-BED: ANNOTATED 2D-BED SPLIT FOR PEAK OVERLAP
    */
   process SPLIT_ANNOTATED_INTERACTIONS {
-    publishDir "${params.outdir}/tmp/process5", mode: 'copy'
-
-    when:
-    !params.skip_overlap
+    publishDir "${params.outdir}/tmp/process5", mode: 'copy', enabled: params.save_tmp
 
     input:
     path bed2D_anno from ch_bed2D_anno
@@ -291,10 +277,7 @@ if (params.skip_anno) {
    * 6. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
    */
   process PEAK_INTERACTION_INTERSECT {
-    publishDir "${params.outdir}/tmp/process6", mode: 'copy'
-
-    when:
-    !params.skip_overlap
+    publishDir "${params.outdir}/tmp/process6", mode: 'copy', enabled: params.save_tmp
 
     input:
     set val(peak_name), file(peak_bed), file(bed2D_anno_split_anchor1), file(bed2D_anno_split_anchor2) from ch_peak_bed_1.combine(ch_bed2D_anno_split_anchor1_1).combine(ch_bed2D_anno_split_anchor2_1).groupTuple()
@@ -316,22 +299,19 @@ if (params.skip_anno) {
    * 7. PEAK ANNOTATION: PEAKS ANNOTATED BY PROXIMITY OR PLAC-SEQ BASED ANNOTATION
    */
   process PEAK_INTERACTION_BASED_ANNOTATION {
-    publishDir "${params.outdir}/tmp/process7", mode: 'copy'
+    publishDir "${params.outdir}/tmp/process7", mode: 'copy', enabled: params.save_tmp
     publishDir "${params.outdir}/Peak_Annotation/${peak_name}", mode: 'copy'
-
-    when:
-    !params.skip_overlap
 
     input:
     set val(peak_name), file(peak_anno_anchor1), file(peak_anno_anchor2), file(peak_anno), file(bed2D_index_anno) from ch_peak_anno_anchor1.join(ch_peak_anno_anchor2).join(ch_peak_anno).combine(ch_bed2D_index_anno_1)
-    val unannotated from Channel.value(params.unannotated)
+    val proximity_unannotated from Channel.value(params.proximity_unannotated)
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
 
 
     output:
-    tuple val(peak_name), path("${peak_name}_${prefix}_PLACseq_annotated.txt") into ch_peak_PLACseq_annotated
-    tuple val(peak_name), path("${peak_name}_${prefix}_PLACseq_annotated_genelist.txt") into ch_peak_PLACseq_annotated_genelist
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated.txt") into ch_peak_PLACseq_annotated
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist.txt") into ch_peak_PLACseq_annotated_genelist
 
     script:
     """
@@ -384,8 +364,8 @@ if (params.skip_anno) {
     Unannotated.columns=['Chr', 'Start', 'End', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
 
     # Annotate unannotated distal peaks by proximity annotation
-    unannotated = "${unannotated}"
-    if unannotated == 'true':
+    proximity_unannotated = "${proximity_unannotated}"
+    if proximity_unannotated == 'true':
         Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
 
 
@@ -404,8 +384,8 @@ if (params.skip_anno) {
         Proximal_Distal = Proximal_Distal.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
         #Genelist = Proximal_Distal.assign(split=Proximal_Distal['Gene'].str.split(', ')).explode('split').loc[:,'split'].unique().tolist()
 
-    Proximal_Distal.to_csv("${peak_name}_${prefix}_PLACseq_annotated.txt", index=False, sep='\t' )
-    pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_PLACseq_annotated_genelist.txt", index=False, header=False,sep='\t' )
+    Proximal_Distal.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
+    pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
     """
 }
 
@@ -423,7 +403,7 @@ ch_peak_bed_4.multiMap(criteria).set {ch_t_3}
  * 8. BEDTOOLS INTERSECT INTERACTION CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
  */
 process INTERACTION_PEAK_INTERSECT {
-  publishDir "${params.outdir}/tmp/process8", mode: 'copy'
+  publishDir "${params.outdir}/tmp/process8", mode: 'copy', enabled: params.save_tmp
 
   when:
   params.annotate_interactions | params.network | params.upset_plot | params.circos_plot | params.complete
@@ -459,7 +439,7 @@ process INTERACTION_PEAK_INTERSECT {
  * 9. INTERACTION CENTERED ANNOTATION - WITH PEAK OVERLAP
  */
 process ANNOTATE_INTERACTION_WITH_PEAKS {
-  publishDir "${params.outdir}/tmp/process9", mode: 'copy'
+  publishDir "${params.outdir}/tmp/process9", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Interaction_Annotation", mode: 'copy', pattern: '*.txt', enabled: params.annotate_interactions | params.complete
 
   when:
@@ -473,8 +453,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   val peak_names from ch_t_2.peak_names.collect().map{ it2 -> it2.join(' ')}
 
   output:
-  path "*_${prefix}_PLACseq_interactions.txt" into ch_interactions_by_factor
-  path "${prefix}_HOMER_annotation_PLACseq_interactions_with_peak_overlap.txt" into ch_interactions_all
+  path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all
 
   script:
   if (params.mode == 'basic')
@@ -519,8 +499,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     anchors_peaks_anno_factor = anchors_peaks_anno[(anchors_peaks_anno['Overlap_1'] == 1) | (anchors_peaks_anno['Overlap_2'] == 1)]
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
-    anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_PLACseq_interactions.txt", index=False, sep='\t' )
-    anchors_peaks_anno.to_csv("${prefix}_HOMER_annotation_PLACseq_interactions_with_peak_overlap.txt", index=False, sep='\t' )
+    anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
+    anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=False, sep='\t' )
     """
 
   else if (params.mode == 'multiple')
@@ -571,8 +551,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
 
     for f in factor:
-        factor_dict[f].to_csv(str(f) + "_${prefix}_PLACseq_interactions.txt", index=False, sep='\t' )
-    anchors_peaks_anno.to_csv("${prefix}_HOMER_annotation_PLACseq_interactions_with_peak_overlap.txt", index=False, sep='\t' )
+        factor_dict[f].to_csv(str(f) + "_${prefix}_interactions.txt", index=False, sep='\t' )
+    anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=False, sep='\t' )
     """
 }
 
@@ -580,8 +560,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
  * 10. CREATES NETWORK FILES FOR CYTOSCAPE
  */
 process NETWORK {
-  publishDir "${params.outdir}/tmp/process10", mode: 'copy'
-  publishDir "${params.outdir}/Network", mode: 'copy', pattern: 'Network_*_PLACseq_interactions_*.txt', enabled: params.network | params.complete
+  publishDir "${params.outdir}/tmp/process10", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/Network", mode: 'copy', pattern: 'Network_*_interactions_*.txt', enabled: params.network | params.complete
 
   when:
   params.network | params.upset_plot | params.circos_plot | params.complete
@@ -599,14 +579,14 @@ process NETWORK {
 
 
   output:
-  path "Network_Edges_${prefix}_PLACseq_interactions_*.txt" into ch_edges
-  path "Network_Nodes_${prefix}_PLACseq_interactions_*.txt" into ch_nodes
+  path "Network_Edges_${prefix}_interactions_*.txt" into ch_edges
+  path "Network_Nodes_${prefix}_interactions_*.txt" into ch_nodes
 
   //For Upset PLOT (only created in multiple mode)
-  path "UpSet_${prefix}_PLACseq_interactions_Promoter.txt" optional true into ch_upset_promoter
-  path "UpSet_${prefix}_PLACseq_interactions_Distal.txt" optional true into ch_upset_distal
-  path "UpSet_${prefix}_PLACseq_interactions_Promoter_genes.txt" optional true into ch_upset_promoter_genes
-  path "UpSet_${prefix}_PLACseq_interactions_Distal_genes.txt" optional true into ch_upset_distal_genes
+  path "UpSet_${prefix}_interactions_Promoter.txt" optional true into ch_upset_promoter
+  path "UpSet_${prefix}_interactions_Distal.txt" optional true into ch_upset_distal
+  path "UpSet_${prefix}_interactions_Promoter_genes.txt" optional true into ch_upset_promoter_genes
+  path "UpSet_${prefix}_interactions_Distal_genes.txt" optional true into ch_upset_distal_genes
 
   script:
   if (params.mode == 'basic')
@@ -693,15 +673,15 @@ process NETWORK {
     ### Creating edge table for cytoscape
     if network_mode == "all":
       Egdes_all = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
-      Egdes_all.to_csv("Edges_${prefix}_PLACseq_interactions_all.txt", index=False, sep='\t' )
+      Egdes_all.to_csv("Edges_${prefix}_interactions_all.txt", index=False, sep='\t' )
 
     elif network_mode == "factor":
       Egdes_factor =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
-      Egdes_factor.to_csv("Edges_${prefix}_PLACseq_interactions_factors.txt", index=False, sep='\t' )
+      Egdes_factor.to_csv("Edges_${prefix}_interactions_factors.txt", index=False, sep='\t' )
 
     elif network_mode == "genes":
       Egdes_genes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
-      Egdes_genes.to_csv("Edges_${prefix}_PLACseq_interactions_genes.txt", index=False, sep='\t' )
+      Egdes_genes.to_csv("Edges_${prefix}_interactions_genes.txt", index=False, sep='\t' )
 
 
     ### Creating node table for cytoscape
@@ -714,7 +694,7 @@ process NETWORK {
                                       (np.where(nodes_all['Node'].isin(Distal_Promoter['Source']), 'Distal',
                                          (np.where(nodes_all['Node'].isin(Distal_Promoter['Target']) | nodes_all['Node'].isin(Promoter_Promoter['Source']) | nodes_all['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
                                             (np.where(nodes_all['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
-      nodes_all.to_csv("Nodes_${prefix}_PLACseq_interactions_all.txt", index=False, sep='\t' )
+      nodes_all.to_csv("Nodes_${prefix}_interactions_all.txt", index=False, sep='\t' )
 
     elif network_mode == "factor":
       # Specifying node type for all nodes that are associated with factor binding
@@ -724,7 +704,7 @@ process NETWORK {
                                       (np.where(nodes_factor['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
                                          (np.where(nodes_factor['Node'].isin(Distal_Promoter_filt_f['Target']) | nodes_factor['Node'].isin(Promoter_Promoter_filt_f['Source']) | nodes_factor['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
                                             (np.where(nodes_factor['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
-      nodes_factor.to_csv("Nodes_${prefix}_PLACseq_interactions_factors.txt", index=False, sep='\t' )
+      nodes_factor.to_csv("Nodes_${prefix}_interactions_factors.txt", index=False, sep='\t' )
 
     elif network_mode == "genes":
       # Specifying node type for all nodes that are associated with selected genes
@@ -734,7 +714,7 @@ process NETWORK {
                                       (np.where(nodes_genes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
                                          (np.where(nodes_genes['Node'].isin(Distal_Promoter_filt_g['Target']) | nodes_genes['Node'].isin(Promoter_Promoter_filt_g['Source']) | nodes_genes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
                                             (np.where(nodes_genes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
-      nodes_genes.to_csv("Nodes_${prefix}_PLACseq_interactions_genes.txt", index=False, sep='\t' )
+      nodes_genes.to_csv("Nodes_${prefix}_interactions_genes.txt", index=False, sep='\t' )
     """
 
   else if (params.mode == 'multiple')
@@ -817,15 +797,15 @@ process NETWORK {
     ### Creating edge table for cytoscape
     if network_mode == "all":
       Egdes_all = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
-      Egdes_all.to_csv("Network_Edges_${prefix}_PLACseq_interactions_all.txt", index=False, sep='\t' )
+      Egdes_all.to_csv("Network_Edges_${prefix}_interactions_all.txt", index=False, sep='\t' )
 
     elif network_mode == "factor":
       Egdes_factor =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
-      Egdes_factor.to_csv("Network_Edges_${prefix}_PLACseq_interactions_factors.txt", index=False, sep='\t' )
+      Egdes_factor.to_csv("Network_Edges_${prefix}_interactions_factors.txt", index=False, sep='\t' )
 
     elif network_mode == "genes":
       Egdes_genes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
-      Egdes_genes.to_csv("Network_Edges_${prefix}_PLACseq_interactions_genes.txt", index=False, sep='\t' )
+      Egdes_genes.to_csv("Network_Edges_${prefix}_interactions_genes.txt", index=False, sep='\t' )
 
 
     ### Creating node table for cytoscape
@@ -838,7 +818,7 @@ process NETWORK {
                                       (np.where(nodes_all['Node'].isin(Distal_Promoter['Source']), 'Distal',
                                          (np.where(nodes_all['Node'].isin(Distal_Promoter['Target']) | nodes_all['Node'].isin(Promoter_Promoter['Source']) | nodes_all['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
                                             (np.where(nodes_all['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
-      nodes_all.to_csv("Network_Nodes_${prefix}_PLACseq_interactions_all.txt", index=False, sep='\t' )
+      nodes_all.to_csv("Network_Nodes_${prefix}_interactions_all.txt", index=False, sep='\t' )
 
     elif network_mode == "factor":
       # Specifying node type for all nodes that are associated with factor binding
@@ -848,7 +828,7 @@ process NETWORK {
                                       (np.where(nodes_factor['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
                                          (np.where(nodes_factor['Node'].isin(Distal_Promoter_filt_f['Target']) | nodes_factor['Node'].isin(Promoter_Promoter_filt_f['Source']) | nodes_factor['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
                                             (np.where(nodes_factor['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
-      nodes_factor.to_csv("Network_Nodes_${prefix}_PLACseq_interactions_factors.txt", index=False, sep='\t' )
+      nodes_factor.to_csv("Network_Nodes_${prefix}_interactions_factors.txt", index=False, sep='\t' )
 
     elif network_mode == "genes":
       # Specifying node type for all nodes that are associated with selected genes
@@ -858,20 +838,20 @@ process NETWORK {
                                       (np.where(nodes_genes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
                                          (np.where(nodes_genes['Node'].isin(Distal_Promoter_filt_g['Target']) | nodes_genes['Node'].isin(Promoter_Promoter_filt_g['Source']) | nodes_genes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
                                             (np.where(nodes_genes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
-      nodes_genes.to_csv("Network_Nodes_${prefix}_PLACseq_interactions_genes.txt", index=False, sep='\t' )
+      nodes_genes.to_csv("Network_Nodes_${prefix}_interactions_genes.txt", index=False, sep='\t' )
 
     ### Save files for UpSet PLOT
     plot_upset = "${upset_plot}"
     circos_plot = "${circos_plot}"
     complete = "${complete}"
     if (plot_upset == 'true' or complete == 'true' or circos_plot == 'true'):
-      Factor_Promoter.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_PLACseq_interactions_Promoter.txt", index=False, sep='\t' )
-      Factor_Distal.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_PLACseq_interactions_Distal.txt", index=False, sep='\t' )
+      Factor_Promoter.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Promoter.txt", index=False, sep='\t' )
+      Factor_Distal.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Distal.txt", index=False, sep='\t' )
 
       filter_genes = "${filter_genes}"
       if filter_genes == 'true':
-        Factor_Promoter_filt_g.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_PLACseq_interactions_Promoter_genes.txt", index=False, sep='\t' )
-        Factor_Distal_filt_g.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_PLACseq_interactions_Distal_genes.txt", index=False, sep='\t' )
+        Factor_Promoter_filt_g.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Promoter_genes.txt", index=False, sep='\t' )
+        Factor_Distal_filt_g.reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Distal_genes.txt", index=False, sep='\t' )
     """
 }
 
@@ -884,7 +864,7 @@ if ({params.upset_plot | params.circos_plot | params.complete} && !params.filter
  * 11. UPSET PLOT FOR FACTOR BINDING IN ANCHOR POINTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERES FOR GENES
  */
 process UPSET_PLOT {
-  publishDir "${params.outdir}/tmp/process10", mode: 'copy'
+  publishDir "${params.outdir}/tmp/process10", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Figures/Upset", mode: 'copy', pattern: 'Upset_plot_*.pdf', enabled: params.upset_plot | params.complete
 
   when:
@@ -908,8 +888,8 @@ process UPSET_PLOT {
   path "Upset_plot_Distal_genes.pdf" optional true into ch_upset_plot_distal_genes
 
   //For circos plot
-  path "Circos_factors_${prefix}_PLACseq_interactions.txt" optional true into ch_circos_f
-  path "Circos_genes_${prefix}_PLACseq_interactions.txt" optional true into ch_circos_g
+  path "Circos_factors_${prefix}_interactions.txt" optional true into ch_circos_f
+  path "Circos_genes_${prefix}_interactions.txt" optional true into ch_circos_g
 
 
   script:
@@ -985,7 +965,7 @@ process UPSET_PLOT {
     circos_f.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
     circos_f.fillna(False,inplace=True)
     circos_f = circos_f.groupby(list(circos_f.columns)).size().to_frame('size').reset_index()
-    circos_f.to_csv("Circos_factors_${prefix}_PLACseq_interactions.txt", index=False, sep='\t' )
+    circos_f.to_csv("Circos_factors_${prefix}_interactions.txt", index=False, sep='\t' )
 
     filter_genes = "${filter_genes}"
     if filter_genes == 'true':
@@ -995,7 +975,7 @@ process UPSET_PLOT {
       circos_g.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
       circos_g.fillna(False,inplace=True)
       circos_g = circos_g.groupby(list(circos_g.columns)).size().to_frame('size').reset_index()
-      circos_g.to_csv("Circos_genes_${prefix}_PLACseq_interactions.txt", index=False, sep='\t' )
+      circos_g.to_csv("Circos_genes_${prefix}_interactions.txt", index=False, sep='\t' )
   """
 }
 
@@ -1007,7 +987,7 @@ if ({params.circos_plot | params.complete} && !params.filter_genes ){
  * 12. CIRCOS PLOTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERED FOR GENES
  */
 process CIRCOS_PLOT {
-  publishDir "${params.outdir}/tmp/process11", mode: 'copy'
+  publishDir "${params.outdir}/tmp/process11", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Figures/Circos", mode: 'copy', enabled: params.circos_plot | params.complete
 
   when:
