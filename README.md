@@ -92,11 +92,8 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating promblems. Default: false.
 | `--help` | Help message is shown. |
 
-### Basic mode
-Add text here???
-
-### Multiple mode
-Add text here???
+### Multiple mode specific arguments
+When the pipleine is run in multiple mode, some aditional processes based on peak overlap are available. The specific parameters for these processes are listed below:
 
 #### Arguments
 | Argumnet | Description |
