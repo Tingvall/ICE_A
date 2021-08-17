@@ -4,15 +4,35 @@ def helpMessage() {
   log.info"""
   Usage:
   The typical command for running the pipeline is as follows:
-    nextflow run PLAC_anno.nf --bed2D  2d.bed --genome mm10 --peaks peaks.txt --outdir outdir/ --multiple_anno keep --genes genes.txt
-  Mandatory arguments:
-    --peaks [file]                  Comma-separated file containing information about the samples in the experiment
-    --bed2D [file]                  2D-bed file contatining the genomic interactions in ??? format
-    --genome                        Pecification of genome for HOMER (e.g. mm10)
+    nextflow run PLAC_anno_2.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
 
+  Required inputs:
+    --peaks [file]                  Path to text file specifying the name and path of the peak file(s).
+    --bed2D [file]                  Path 2D-BED file containing genomic interactions. Currently the pipeline is designed for 2D-bed files created by ???. This input can be replcaed by bed2D_anno if an alredy annotated 2D-bed file is available and the arguement skip_anno is used.
+    --genome                        Specification of genome for annotation (e.g. mm10).
 
-    nextflow run PLAC_anno.nf --bed2D  P2C2_H3K4me3_FitHiChIP.interactions_FitHiC_Q0.05_MergeNearContacts.bed --genome mm10 --peaks test_t.txt --outdir testis --multiple_anno keep --genes /Users/johti53/bioinformatics_tools/reference_files/Genes/tcell_genes.txt -resume
+  Optional input:
+    --genes [file]                  Path to textfile with gene names (specify???), that is used for filtering of interactions associated with the specified genes. nly used when the option --filtering_genes is specified or if --network_mode is set to genes.
+    --bed2D_anno                    Specifies path to annotated 2D-bed file if --skip_anno is used.
 
+  Arguments - General:
+    --mode                          Define which mode to run the pipeline in. The options are basic (default), multiple or differntial.
+    --outdir                        Specifies the output driectory (default: ./results).
+    --prefix                        Prefix used for interactions (default: PLACseq).
+    --proximity_unannotated         Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false).
+    --multiple_anno                 Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowset qvalue). Default is: concentrate.
+    --skip_anno                     Skip the HOMER annotation of the interactions (requires specification of path to annotated 2D-bed by using the argumnet --bed2D_anno).
+    --annotate_interactions         Specifes if interaction-centered annotation with peak overlap should be performed. Only valid if --complete is set to false.
+    --network                       Specifes if files for network visualization in Cytoskape should be created. Only valid if --complete is set to false.
+    --network_mode                  Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a genelist, provided by --genes).
+    --complete                      If set to true (default), all available processes for the selected mode and provided inputs are run.
+    --save_tmp                      If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating promblems. Default: false.
+    --help                          Help message is shown.
+
+  Arguments - Multiple mode specific:
+    --upset_plot                    If specified, Upset plot of peak overlap will be created. Only valid if --complete is set to false.
+    --circos_plot                   If specified, Circos plot of peak overlap will be created. Only valid if --complete is set to false.
+    --filter_genes                  Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument --genes.
   """.stripIndent()
   }
 
