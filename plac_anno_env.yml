@@ -1,0 +1,21 @@
+name: plac_anno_env
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - conda-forge::python=3.8.10
+  - conda-forge::pandas=1.3.2
+  - conda-forge::upsetplot=0.6.0
+  - conda-forge::matplotlib=3.4.3
+  - conda-forge::r-base=4.1.1
+  - conda-forge::r-stringr=1.4.0
+  - conda-forge::r-circlize=0.4.13
+  - conda-forge::r-viridis=0.6.1
+  - conda-forge::r-mgsub=1.7.3
+
+  - bioconda::nextflow=21.04.0
+  - bioconda::bedtools=2.30.0
+  - bioconda::homer=4.10
