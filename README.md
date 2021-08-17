@@ -52,7 +52,7 @@ Before you use the pipeline, HOMER must be configured correctly. For each genome
 ```bash
 perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
 ```
-Next, download the promoter annotations for the organism you are working with (for available genomes visit: http://homer.ucsd.edu/homer):
+Next, download the promoter annotations for the organism you are working with (for available organisms visit: http://homer.ucsd.edu/homer):
 ```bash
 perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
 ```
