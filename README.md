@@ -38,7 +38,7 @@ The pipeline consist of the following processes:
 
 ## Installation
 
-**Create conda environment:**
+####Create conda environment:
 Download the plac_anno_env.yml file and create a conda environemnt that contain all packages neccisary to run the pieline:
 ```bash
 conda create -f plac_anno_env.yaml
@@ -47,7 +47,7 @@ Activate conda environment:
 ```bash
 conda activate plac_anno_env
 ```
-**Configure HOMER:**
+####Configure HOMER:
 Before you use the pipeline, HOMER must be configured correctly. For each genome you intend to use, download the reference fasta file by using the following command (for available genomes visit: http://homer.ucsd.edu/homer):
 ```bash
 perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
@@ -57,7 +57,7 @@ Next, download the promoter annotations for the organism you are working with (f
 perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
 ```
 
-**Launce pipeline:**
+####Launce pipeline:
 Dowload the pipeline (including main.nf & nextflow.config). To avoid having specify the path to the config file, make sure to place the two files in the same directory. Try to launce the pipeline:
 ```bash
 nextflow run PLAC_anno_2.nf --help
