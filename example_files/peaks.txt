@@ -1,0 +1,4 @@
+peak_name peak_file
+factor1 /path/to/factor1.bed
+factor2 /path/to/factor2.bed
+factor3 /path/to/factor3.bed
