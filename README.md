@@ -114,7 +114,7 @@ When the pipleine is run in multiple mode, some aditional processes based on pea
 | `--circos_plot` | If specified, Circos plot of peak overlap will be created. Only valid if `--complete` is set to false. |
 | `--filter_genes` | Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument `--genes`. |
 
-### Differntial mode
+### Differntial mode specific arguments
 Differntial mode is in developemnt, and more information will be available shortly.
 
 
