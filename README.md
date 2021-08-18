@@ -69,13 +69,13 @@ nextflow run PLAC_anno_2.nf --help
 | Input | Description |
 | --- | --- |
 | `--peaks` | Path to txt file specifying the name of the peak files(s) in the first column and the path to the file(s) in the second column (For example see: [peaks.txt](example_files/peaks.txt)). The recomended input format for the peak files are 6 column bed files (more columns are allowed but will be ignored): chr, start, end, peakID, peak score, strand. It is also possible to use a 3 column bed but then peakIDs are automaically generated and peak score and strand information are not available. |
-| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIC`](https://github.com/ay-lab/fithic). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `skip_anno` is used. |
-| `--genome` | Specification of genome for annotation (e.g. mm10). Currently the annotation is performed by [`HOMER`](http://homer.ucsd.edu/homer/), visit documentation for details and available genomes: http://homer.ucsd.edu/homer |
+| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIC`](https://github.com/ay-lab/fithic). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `s--kip_anno` is used. |
+| `--genome` | Specification of genome for annotation (e.g. mm10). Currently the annotation is performed by [`HOMER`](http://homer.ucsd.edu/homer/), visit documentation for details and available genomes: http://homer.ucsd.edu/homer. |
 
 #### Optional input
 | Input | Description |
 | --- | --- |
-| `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Textfile with genenames (specify???), that is used for filtering of interactions associated with the specified genes. The filitering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visulaization (if `--network_mode` is set to `genes`). |
+| `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Textfile with gene symbols, that is used for filtering of interactions associated with the specified genes. The filitering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visulaization (if `--network_mode` is set to `genes`). |
 | `--bed2D_anno` | Specifies path to annotated 2D-bed file if `--skip_anno` is used. |
 
 ## Running the pipeline
