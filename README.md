@@ -115,11 +115,7 @@ When the pipleine is run in multiple mode, some aditional processes based on pea
 | `--filter_genes` | Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument `--genes`. |
 
 ### Differntial mode
-Add text here???
+Differntial mode is in developemnt, and more information will be available shortly.
 
-#### Arguments
-| Argumnet | Description |
-| --- | --- |
-| `` | |
 
 ## Outputs and interpretation
