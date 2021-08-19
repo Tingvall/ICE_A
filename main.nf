@@ -553,6 +553,9 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   output:
   path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
   path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all
+  path "*_${prefix}_interactions_up.txt" optional true into ch_interactions_up
+  path "*_${prefix}_interactions_down.txt" optional true into ch_interactions_down
+
 
   script:
   if (params.mode == 'basic')
@@ -715,12 +718,21 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     anchors_peaks_anno['Overlap_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)
     anchors_peaks_anno['Overlap_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
     anchors_peaks_anno_factor = anchors_peaks_anno[(anchors_peaks_anno['Overlap_1'] == 1) | (anchors_peaks_anno['Overlap_2'] == 1)]
-    anchors_peaks_anno_factor = anchors_peaks_anno_factor.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
+    # Extracting interactions associates with differntial peaks
+    anchors_peaks_anno_up=anchors_peaks_anno_factor[((anchors_peaks_anno_factor.padj_1 <= 0.05) & (anchors_peaks_anno_factor.log2FC_1 >=1.5)) | ((anchors_peaks_anno_factor.padj_2 <= 0.05) & (anchors_peaks_anno_factor.log2FC_2 >=1.5)) ]
+    anchors_peaks_anno_down=anchors_peaks_anno_factor[((anchors_peaks_anno_factor.padj_1 <= 0.05) & (anchors_peaks_anno_factor.log2FC_1 <= -1.5)) | ((anchors_peaks_anno_factor.padj_2 <= 0.05) & (anchors_peaks_anno_factor.log2FC_2 <= -1.5)) ]
+
+    #Merging for one row per interaction
+    anchors_peaks_anno_factor = anchors_peaks_anno_factor.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
+    anchors_peaks_anno_up = anchors_peaks_anno_up.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
+    anchors_peaks_anno_down = anchors_peaks_anno_down.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
     anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
     anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
+    anchors_peaks_anno_up.to_csv("${peak_names}_${prefix}_interactions_up.txt", index=False, sep='\t' )
+    anchors_peaks_anno_down.to_csv("${peak_names}_${prefix}_interactions_down.txt", index=False, sep='\t' )
     anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=True, sep='\t' )
     """
 }
