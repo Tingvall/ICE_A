@@ -7,8 +7,8 @@ def helpMessage() {
     nextflow run PLAC_anno_2.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
 
   Required inputs:
-    --peaks [file]                  Path to text file specifying the name and path of the peak file(s).
-    --bed2D [file]                  Path 2D-BED file containing genomic interactions. Currently the pipeline is designed for 2D-bed files created by ???. This input can be replcaed by bed2D_anno if an alredy annotated 2D-bed file is available and the arguement skip_anno is used.
+    --peaks [file]                  Patj to text file specifying the name of the peak files(s) in the first column and the path to the file(s) in the second column (For example see: [peaks.txt](example_files/peaks.txt)). The recomended input format for the peak files are 6 column bed files (more columns are allowed but will be ignored): chr, start, end, peakID, peak score, strand. It is also possible to use a 3 column bed but then peakIDs are automaically generated and peak score and strand information are not available.
+    --bed2D [file]                  Path 2D-BED file containing genomic interactions. Currently the pipeline is designed for 2D-bed files created by FitHIC (https://github.com/ay-lab/fithic). This input can be replcaed by bed2D_anno if an alredy annotated 2D-bed file is available and the arguement skip_anno is used.
     --genome                        Specification of genome for annotation (e.g. mm10).
 
   Optional input:
@@ -25,7 +25,7 @@ def helpMessage() {
     --annotate_interactions         Specifes if interaction-centered annotation with peak overlap should be performed. Only valid if --complete is set to false.
     --network                       Specifes if files for network visualization in Cytoskape should be created. Only valid if --complete is set to false.
     --network_mode                  Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a genelist, provided by --genes).
-    --complete                      If set to true (default), all available processes for the selected mode and provided inputs are run.
+    --complete                      If specified, all available processes for the selected mode and provided inputs are run.
     --save_tmp                      If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating promblems. Default: false.
     --help                          Help message is shown.
 
@@ -33,6 +33,15 @@ def helpMessage() {
     --upset_plot                    If specified, Upset plot of peak overlap will be created. Only valid if --complete is set to false.
     --circos_plot                   If specified, Circos plot of peak overlap will be created. Only valid if --complete is set to false.
     --filter_genes                  Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument --genes.
+
+    Arguments - Multiple mode specific:
+    --peak_differntial [file]       Path to textfile that contain log2FC and adjusted p-value from differntial analyis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the aruguments --log2FC_column and --padj column.
+    --log2FC_column                 Specifies which column in the differntial peak file that contain log2FC values (default:3, standard DESeq2 output)
+    --padj_column                   Specifies which column in the differntial peak file that contain adjusted p-values (default:9, standard DESeq2 output)
+    --log2FC                        Log2FC treshold for differtial peak analysis
+    --padj                          Significance level for differtial peak analysis
+    --expression [file]
+
   """.stripIndent()
   }
 
@@ -59,6 +68,8 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
         .map { row -> [ row.peak_name, [ file(row.peak_file) ] ] }
         .set { ch_peaks_split}
 
+if (!params.genome)      { exit 1, 'Refence genome not specified' }
+
 
 if (params.network && params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
@@ -67,7 +78,12 @@ else {
   ch_genes = file(params.genes)
 }
 
-if (!params.genome)      { exit 1, 'Refence genome not specified' }
+if (params.mode == 'differential') {
+  if (params.peak_differential)     { ch_peak_differential = Channel.fromPath(params.peak_differential, checkIfExists: true) } else { exit 1, 'Peak file log2FC and adjusted p-value not specified' }
+}
+else {
+  ch_peak_differential = file(params.genes)
+}
 
 if (params.mode == 'basic') {
 println ("""
@@ -140,6 +156,7 @@ println ("""
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
+        Multiple Annotation mode:
         ===========================================================================================
         """)
 }
@@ -327,11 +344,24 @@ if (params.skip_anno) {
     val proximity_unannotated from Channel.value(params.proximity_unannotated)
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
+    val mode from Channel.value(params.mode)
 
+    //Differntial mode specific
+    path peak_differential from ch_peak_differential
+    val log2FC_column from Channel.value(params.log2FC_column)
+    val padj_column from Channel.value(params.padj_column)
+    val log2FC from Channel.value(params.log2FC)
+    val padj from Channel.value(params.padj)
 
     output:
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated.txt") into ch_peak_PLACseq_annotated
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_up.txt") optional true into ch_peak_PLACseq_annotated_up
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_down.txt") optional true into ch_peak_PLACseq_annotated_down
+
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist.txt") into ch_peak_PLACseq_annotated_genelist
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist_up.txt") optional true into ch_peak_PLACseq_annotated_genelist_up
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist_down.txt") optional true into ch_peak_PLACseq_annotated_genelist_down
+
 
     script:
     """
@@ -341,9 +371,8 @@ if (params.skip_anno) {
     import numpy as np
 
     # Column names for loaded data
-    peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end', 'peak_id', 'Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
-    peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end', 'peak_id', 'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
-
+    peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
+    peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
 
     # Load peak overlap for anchor 1 & 2, as well as annotated peak & 2D-bed files
     peak_anchor1 = pd.read_table("${peak_anno_anchor1}", index_col=3, names=peak_anchor1_name).sort_index()
@@ -391,21 +420,62 @@ if (params.skip_anno) {
 
     Proximal_Distal['Start'] = Proximal_Distal['Start']-1
 
-    # Handling of peaks annotating to several genes
-    multiple_anno = "${multiple_anno}"
-    if multiple_anno == 'keep':
+    # Organizing and saving annotated files/genelsits
+    mode = "${mode}"
+
+    # Basic/Multiple mode: Handling of peaks annotating to several genes
+    if (mode=='basic' or mode=='multiple'):
+      multiple_anno = "${multiple_anno}"
+      if multiple_anno == 'keep':
         Proximal_Distal = Proximal_Distal
         Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-    elif multiple_anno == 'qvalue':
+      elif multiple_anno == 'qvalue':
         Proximal_Distal = Proximal_Distal.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
         Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-    elif multiple_anno == 'concentrate':
+      elif multiple_anno == 'concentrate':
         Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
         Proximal_Distal = Proximal_Distal.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-        #Genelist = Proximal_Distal.assign(split=Proximal_Distal['Gene'].str.split(', ')).explode('split').loc[:,'split'].unique().tolist()
 
-    Proximal_Distal.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
-    pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
+      Proximal_Distal.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
+      pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
+
+    # Differntial mode: Creting peak annotation/genelists for UP/DOWN peak_start
+    if mode == 'differential':
+      peak_differntial = pd.read_table("${peak_differential}", index_col=0).sort_index()
+      peak_differntial = peak_differntial.iloc[:, [${log2FC_column}-2, ${padj_column}-2]]
+      peak_differntial.columns = ['log2FC', 'padj']
+      Proximal_Distal_differential=Proximal_Distal.merge(peak_differntial, left_index=True, right_index=True, how = 'left')
+      Proximal_Distal_differential.index.name = 'Peak'
+      Proximal_Distal_up=Proximal_Distal_differential[(Proximal_Distal_differential.padj <= ${padj}) & (Proximal_Distal_differential.log2FC >=${log2FC})]
+      Proximal_Distal_down=Proximal_Distal_differential[(Proximal_Distal_differential.padj <= ${padj}) & (Proximal_Distal_differential.log2FC <= -${log2FC})]
+
+      # Differnetial mode: Handling of peaks annotating to several genes
+      multiple_anno = "${multiple_anno}"
+      if multiple_anno == 'keep':
+        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
+        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
+        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
+      elif multiple_anno == 'qvalue':
+        Proximal_Distal_differential = Proximal_Distal_differential.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
+        Proximal_Distal_up = Proximal_Distal_up.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
+        Proximal_Distal_down = Proximal_Distal_down.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
+        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
+        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
+        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
+      elif multiple_anno == 'concentrate':
+        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
+        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
+        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
+        Proximal_Distal_differential = Proximal_Distal_differential.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
+        Proximal_Distal_up = Proximal_Distal_up.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
+        Proximal_Distal_down = Proximal_Distal_down.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
+
+      Proximal_Distal_differential.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
+      Proximal_Distal_up.to_csv("${peak_name}_${prefix}_annotated_up.txt", index=False, sep='\t' )
+      Proximal_Distal_down.to_csv("${peak_name}_${prefix}_annotated_down.txt", index=False, sep='\t' )
+      pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
+      pd.DataFrame(Genelist_up).to_csv("${peak_name}_${prefix}_annotated_genelist_up.txt", index=False, header=False,sep='\t' )
+      pd.DataFrame(Genelist_down).to_csv("${peak_name}_${prefix}_annotated_genelist_down.txt", index=False, header=False,sep='\t' )
     """
 }
 
