@@ -512,7 +512,7 @@ process INTERACTION_PEAK_INTERSECT {
 
 
   script:
-  if (params.mode == 'basic')
+  if (params.mode == 'basic' | params.mode == 'differential')
     """
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds > Anchor_1_peak_collect.bed
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds > Anchor_2_peak_collect.bed
@@ -592,11 +592,13 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
         else:
             return 1
 
+    anchors_peaks_anno.index.name = 'Interaction'
     anchors_peaks_anno['Overlap_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)
     anchors_peaks_anno['Overlap_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
     anchors_peaks_anno_factor = anchors_peaks_anno[(anchors_peaks_anno['Overlap_1'] == 1) | (anchors_peaks_anno['Overlap_2'] == 1)]
-    anchors_peaks_anno_factor.index.name = 'Interaction'
     anchors_peaks_anno_factor = anchors_peaks_anno_factor.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
+
+    anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
     anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
@@ -647,16 +649,16 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     for f in factor:
         anchors_peaks_anno[f + '_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
 
+    anchors_peaks_anno.index.name = 'Interaction'
+
     # Creating dictionary with each factors as a key and associated df with interactions with factor overlap in at least one anchor point
     factor_dict={}
     for f in factor:
         factor_dict[f] = anchors_peaks_anno[(anchors_peaks_anno['Peak1'] == f) | (anchors_peaks_anno['Peak2'] == f)]
         factor_dict[f].loc[factor_dict[f].Peak1 !=f,['Peak1', 'Peak1_ID', 'Peak1_score']] = ''
         factor_dict[f].loc[factor_dict[f].Peak2 !=f,['Peak2', 'Peak2_ID', 'Peak2_score']] = ''
-        factor_dict[f].index.name = 'Interaction'
         factor_dict[f] = factor_dict[f].groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
-    anchors_peaks_anno.index.name = 'Interaction'
     anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
@@ -709,11 +711,13 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
         else:
             return 1
 
+    anchors_peaks_anno.index.name = 'Interaction'
     anchors_peaks_anno['Overlap_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)
     anchors_peaks_anno['Overlap_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
     anchors_peaks_anno_factor = anchors_peaks_anno[(anchors_peaks_anno['Overlap_1'] == 1) | (anchors_peaks_anno['Overlap_2'] == 1)]
-    anchors_peaks_anno_factor.index.name = 'Interaction'
     anchors_peaks_anno_factor = anchors_peaks_anno_factor.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
+
+    anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
     anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
