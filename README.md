@@ -35,6 +35,7 @@ The pipeline consist of the following processes:
 11. **NETWORK VISUALIZATION [Optional]** - Visualizes networks using [`Cytoscape`](https://cytoscape.org/)
 12. **UPSET_PLOT [Optional]** - Upset plots for overlap of peak files in promoter and distal regions (only available in Multiple mode)
 13. **CIRCOS PLOT [Optional]** - Circos plot representing peak overlap in genomic interactions (only available in Multiple mode)
+14. **DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS [Optional]** - Finding differntial peaks that are associated with changes in gene expression
 
 
 ## Installation
@@ -128,6 +129,7 @@ When the pipleine is run in multiple mode, some aditional processes based on pea
 ### Differntial mode specific arguments
 When the pipleine is run in differential mode, some aditional processes based on peak overlap are available. The specific parameters for these processes are listed below:
 | Argumnet | Description |
+| --- | --- |
 | `--log2FC_column` | Specifies which column in `--peak_differential` that contain the log2FC values. Deafult: 3 (standard DESEq2 output). |
 | `--padj_column` | Specifies which column in `--peak_differential` that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output). |
 | `--log2FC` | Set the log2FC treshold for differntial peaks. Default: 1.5 |
