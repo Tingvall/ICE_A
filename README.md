@@ -85,7 +85,7 @@ nextflow run PLAC_anno_2.nf --help
 | --- | --- |
 | `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Textfile with gene symbols, that is used for filtering of interactions associated with the specified genes. The filitering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visulaization (if `--network_mode` is set to `genes`). |
 | `--bed2D_anno` | Specifies path to annotated 2D-bed file if `--skip_anno` is used. |
-| `--peak_differential` | Only used in differntial mode. Specifies path to file that contain log2FC and adjusted p-value for peaks. The first column must contain peakID matching the 4th column in `--peaks`. The column for log2FC/padj can be specified using `--log2FC_column` and `--padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). |
+| `--peak_differential` | Path to textfile that contain log2FC and adjusted p-value from differntial analyis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the aruguments `--log2FC_column` and `--padj column`. |
 | `--expression` | Only used in differntial mode when `--skip_expression` is false (default). Specifies path to file that contain information about differntial expression between the two conditions. The first column must contain gene symbol. The column for log2FC/padj can be specified using `--expression_log2FC_column` and `--expression_padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). Note: make sure that you use the same direction for the comparison in `--peak_differential` and `--expression`. |
 
 
@@ -132,13 +132,13 @@ When the pipleine is run in differential mode, some aditional processes based on
 | --- | --- |
 | `--log2FC_column` | Specifies which column in `--peak_differential` that contain the log2FC values. Deafult: 3 (standard DESEq2 output). |
 | `--padj_column` | Specifies which column in `--peak_differential` that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output). |
-| `--log2FC` | Set the log2FC treshold for differntial peaks. Default: 1.5 |
-| `--padj` | Set the adjusted p-value treshold for differntial peaks. Default: 0.05 |
+| `--log2FC` | Log2FC treshold for differntial peaks. Default: 1.5 |
+| `--padj` | Adjusted p-value treshold for differntial peaks. Default: 0.05 |
 | `--skip_expression` | Use this argumnet if no  `--expression` file is provided. |
 | `--expression_log2FC_column` | Specifies which column in `--expression` that contain the log2FC values. Deafult: 3 (standard DESEq2 output). |
 | `--expression_padj_column` | Specifies which column in `--expression` that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output). |
-| `--expression_log2FC` | Set the log2FC treshold for differntial genes. Default: 1.5 |
-| `--expression_padj` | Set the adjusted p-value treshold for differntial genes. Default: 0.05 |
+| `--expression_log2FC` | Log2FC treshold for differntial genes. Default: 1.5 |
+| `--expression_padj` | Adjusted p-value treshold for differntial genes. Default: 0.05 |
 
 
 
