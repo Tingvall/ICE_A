@@ -1321,7 +1321,7 @@ if (params.mode == 'differential')
                                   (np.where(nodes_up['Node'].isin(Distal_Promoter_filt_up['Source']), 'Distal',
                                      (np.where(nodes_up['Node'].isin(Distal_Promoter_filt_up['Target']) | nodes_up['Node'].isin(Promoter_Promoter_filt_up['Source']) | nodes_up['Node'].isin(Promoter_Promoter_filt_up['Target']), 'Promoter',
                                         (np.where(nodes_up['Node'].isin(Promoter_Gene_filt_up['Target']), 'Gene', np.nan)))))))
-      Factor_stat_up = Factor_stat[Factor_stat.log2FC<0]
+      Factor_stat_up = Factor_stat.loc[(Factor_stat['log2FC'] >= ${log2FC}) & (Factor_stat['padj'] <= ${padj}),:]
       Factor_stat_up = Factor_stat_up.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
       nodes_peak_anno_up = nodes_up[nodes_up.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_up.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
       nodes_gene_anno_up = nodes_up[nodes_up.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
@@ -1336,7 +1336,7 @@ if (params.mode == 'differential')
                                      (np.where(nodes_down['Node'].isin(Distal_Promoter_filt_down['Target']) | nodes_down['Node'].isin(Promoter_Promoter_filt_down['Source']) | nodes_down['Node'].isin(Promoter_Promoter_filt_down['Target']), 'Promoter',
                                         (np.where(nodes_down['Node'].isin(Promoter_Gene_filt_down['Target']), 'Gene', np.nan)))))))
 
-      Factor_stat_down = Factor_stat[Factor_stat.log2FC<0]
+      Factor_stat_down = Factor_stat.loc[(Factor_stat['log2FC'] <= -${log2FC}) & (Factor_stat['padj'] <= ${padj}),:]
       Factor_stat_down = Factor_stat_down.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
       nodes_peak_anno_down = nodes_down[nodes_down.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_down.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
       nodes_gene_anno_down = nodes_down[nodes_down.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
@@ -1360,16 +1360,213 @@ if (params.mode == 'differential')
   """
 }
 
+if ({params.network | params.complete} && params.mode !="differential" ){
+  ch_nodes_up = file("No_nodes_up")
+  ch_nodes_down = file("No_nodes_down")
+  edges_up = file("No_edges_up")
+  edges_down = file("No_edges_down")
+
+}
+
+/*
+ * 11. NETWORK VISULAIZATIOn
+ */
+process NETWORK_VISUALIZATION {
+  publishDir "${params.outdir}/tmp/process11", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/Figures/Network", mode: 'copy'
+
+  when:
+  params.network | params.complete
+
+  input:
+  path nodes from ch_nodes
+  path edges from ch_edges
+  val log2FC from Channel.value(params.log2FC)
+  val padj from Channel.value(params.padj)
+  val expression_log2FC from Channel.value(params.expression_log2FC)
+  val expression_padj from Channel.value(params.expression_padj)
+  val mode from Channel.value(params.mode)
+  val use_peakscore from Channel.value(params.use_peakscore)
+
+  path nodes_up from ch_nodes_up
+  path nodes_down from ch_nodes_down
+  path edges_up from ch_edges_up
+  path edges_down from ch_edges_down
+
+  output:
+  path  "Network.pdf" into ch_network_pdf
+  path  "Network_up.pdf" optional true into ch_network_up_pdf
+  path  "Network_down.pdf" optional true into ch_network_down_pdf
+
+  path "Network.xgmml" optional true into ch_network_xgmml
+  path "Network_up.xgmml" optional true into ch_network_up_xgmml
+  path "Network_down.xgmml" optional true into ch_network_down_xgmml
+
+
+  script:
+  """
+  #!/usr/local/bin/Rscript --vanilla
+
+  require(RCy3)
+  require(circlize)
+  require(viridisLite)
+
+  #Loading and organizing data
+  nodes <- read.table("${nodes}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
+  edges <- read.table("${edges}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
+  edges[,"interaction"] <- "interacts"
+  edges[,"name"] <- paste(edges\$source, "(interacts)", edges\$target, sep=" ")
+  createNetworkFromDataFrames(nodes,edges, title="Network", collection="Networks" )
+
+  #Creating a style for the network
+  style.name = "style1"
+  defaults <- list(NETWORK_BACKGROUND_PAINT="#ffffff",
+                   NODE_BORDER_PAINT="#000000",
+                   NODE_BORDER_WIDTH=1,
+                   EDGE_WIDTH=1)
+  nodeShape <- mapVisualProperty('Node Shape','type','d',c("Factor","Distal", "Promoter", "Gene"), c("ELLIPSE","ROUND_RECTANGLE","ROUND_RECTANGLE", "ELLIPSE"))
+  nodeFills <- mapVisualProperty('Node Fill Color','type','d',c("Factor","Distal", "Promoter", "Gene"), c("#ffffff   ","#ededed","#8e8e8e", "#3e3e3e"))
+  nodeHeights <- mapVisualProperty('Node Height', 'type', 'd', c("Factor","Distal", "Promoter", "Gene"), c(120, 16, 16, 50))
+  nodeWidths <- mapVisualProperty('Node Width', 'type', 'd', c("Factor","Distal", "Promoter", "Gene"), c(120, 120, 120, 50))
+  nodeBorderWidths <- mapVisualProperty('Node Border Width', 'type', 'd', c("Factor","Distal", "Promoter", "Gene"), c(6, 1, 1, 1))
+  nodeZ <- mapVisualProperty('Node Z Location', 'type', 'd', c("Factor","Distal", "Promoter", "Gene"), c(4, 2, 1, 3))
+  nodeLabels <- mapVisualProperty('Node Label','name','p')
+  nodeLabelSize <- mapVisualProperty('Node Label Font Size', 'type', 'd', c("Factor","Distal", "Promoter", "Gene"), c(32, 8, 8, 10))
+  nodeLabelColor <- mapVisualProperty('Node Label Color', 'type', 'd',c("Factor","Distal", "Promoter", "Gene"), c("#000000", "#000000", "#000000", "#ffffff"))
+  createVisualStyle(style.name, defaults, list(nodeShape, nodeFills, nodeHeights, nodeWidths, nodeLabels,nodeLabelSize, nodeLabelColor, nodeBorderWidths, nodeZ))
+  setVisualStyle(style.name)
+  lockNodeDimensions(FALSE, style.name)
+
+  #Set edge width based on q-value for interactions (and peak score for peaks if the argument use_peakscore is set to true)
+  use_peakscore = "${use_peakscore}"
+  if (use_peakscore=="true"){
+    edges_interaction <- edges[edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+    edges_interaction\$score <- 9*((edges_interaction\$score-min(edges_interaction\$score))/(max(edges_interaction\$score)-min(edges_interaction\$score)))+1
+    edges_factor <- edges[edges\$type %in% c("Factor-Distal", "Factor-Promoter"),]
+    edges_factor\$score <- 9*((edges_factor\$score-min(edges_factor\$score))/(max(edges_factor\$score)-min(edges_factor\$score)))+1
+    edges_score <- rbind(edges_interaction, edges_factor)
+  } else{
+    edges_score <- edges[edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+    edges_score\$score <- 9*((edges_score\$score-min(edges_score\$score))/(max(edges_score\$score)-min(edges_score\$score)))+1
+  }
+  setEdgePropertyBypass(edge.names=edges_score\$name, new.values=edges_score\$score, visual.property='EDGE_WIDTH',bypass = TRUE)
+
+
+  #For differntial mode:color by log2FC of peaks and GENES
+  mode="${mode}"
+  if (mode=="differential"){
+    map2color<-function(x,pal,limits=NULL){
+      if(is.null(limits)) limits=range(x)
+      pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
+    }
+    pal_up <- viridisLite::rocket(100, begin = 0.4, end = 0.25, direction = 1)
+    pal_down <- viridisLite::mako(100, begin = 0.6, end = 0.35, direction = -1)
+    nodes_up_peak <- nodes[nodes\$log2FC >=${log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${padj} & !is.na(nodes\$padj) & nodes\$type %in% c("Distal", "Promoter"),]
+    nodes_down_peak <- nodes[nodes\$log2FC <= -${log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${padj} & !is.na(nodes\$padj) & nodes\$type %in% c("Distal", "Promoter"),]
+    nodes_up_gene <- nodes[nodes\$log2FC >=${expression_log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${expression_padj} & !is.na(nodes\$padj) & nodes\$type == "Gene",]
+    nodes_down_gene <- nodes[nodes\$log2FC <= -${expression_log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${expression_padj} & !is.na(nodes\$padj) & nodes\$type == "Gene",]
+    nodes_up <- rbind(nodes_up_peak, nodes_up_gene)
+    nodes_down <- rbind(nodes_down_peak, nodes_down_gene)
+    nodes_up[,"color"] <- map2color(log(nodes_up[,"log2FC"]),pal_up)
+    nodes_down[,"color"] <- map2color(log(abs(nodes_down[,"log2FC"])),pal_down)
+    nodes_diff <- rbind(nodes_up, nodes_down)
+    nodes_diff[,"color"] <- gsub("FF\$", "", nodes_diff[,"color"])
+    setNodePropertyBypass(nodes_diff\$id,nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+  }
+  toggleGraphicsDetails()
+  exportImage("Network.pdf", 'PDF')
+  exportNetwork("Network.xgmml", type= 'xGMML')
+
+  if (mode=="differential"){
+  #Up
+    up_nodes <- read.table("${nodes_up}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
+    up_edges <- read.table("${edges_up}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
+    up_edges[,"interaction"] <- "interacts"
+    up_edges[,"name"] <- paste(up_edges\$source, "(interacts)", up_edges\$target, sep=" ")
+    createNetworkFromDataFrames(up_nodes,up_edges, title="Network_up", collection="Networks" )
+    setVisualStyle(style.name)
+    lockNodeDimensions(FALSE, style.name)
+
+    use_peakscore = "${use_peakscore}"
+    if (use_peakscore=="true"){
+      up_edges_interaction <- up_edges[up_edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+      up_edges_interaction\$score <- 9*((up_edges_interaction\$score-min(up_edges_interaction\$score))/(max(up_edges_interaction\$score)-min(up_edges_interaction\$score)))+1
+      up_edges_factor <- up_edges[up_edges\$type %in% c("Factor-Distal", "Factor-Promoter"),]
+      up_edges_factor\$score <- 9*((up_edges_factor\$score-min(up_edges_factor\$score))/(max(up_edges_factor\$score)-min(up_edges_factor\$score)))+1
+      up_edges_score <- rbind(up_edges_interaction, up_edges_factor)
+    } else{
+      up_edges_score <- up_edges[up_edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+      up_edges_score\$score <- 9*((up_edges_score\$score-min(up_edges_score\$score))/(max(up_edges_score\$score)-min(up_edges_score\$score)))+1
+    }
+    setEdgePropertyBypass(edge.names=up_edges_score\$name, new.values=up_edges_score\$score, visual.property='EDGE_WIDTH',bypass = TRUE)
+
+    up_nodes_up_peak <- up_nodes[up_nodes\$log2FC >=${log2FC} & !is.na(up_nodes\$log2FC) & up_nodes\$padj <=${padj} & !is.na(up_nodes\$padj) & up_nodes\$type %in% c("Distal", "Promoter"),]
+    up_nodes_down_peak <- up_nodes[up_nodes\$log2FC <= -${log2FC} & !is.na(up_nodes\$log2FC) & up_nodes\$padj <=${padj} & !is.na(up_nodes\$padj) & up_nodes\$type %in% c("Distal", "Promoter"),]
+    up_nodes_up_gene <- up_nodes[up_nodes\$log2FC >=${expression_log2FC} & !is.na(up_nodes\$log2FC) & up_nodes\$padj <=${expression_padj} & !is.na(up_nodes\$padj) & up_nodes\$type == "Gene",]
+    up_nodes_down_gene <- up_nodes[up_nodes\$log2FC <= -${expression_log2FC} & !is.na(up_nodes\$log2FC) & up_nodes\$padj <=${expression_padj} & !is.na(up_nodes\$padj) & up_nodes\$type == "Gene",]
+    up_nodes_up <- rbind(up_nodes_up_peak, up_nodes_up_gene)
+    up_nodes_down <- rbind(up_nodes_down_peak, up_nodes_down_gene)
+    up_nodes_up[,"color"] <- map2color(log(up_nodes_up[,"log2FC"]),pal_up)
+    up_nodes_down[,"color"] <- map2color(log(abs(up_nodes_down[,"log2FC"])),pal_down)
+    up_nodes_diff <- rbind(up_nodes_up, up_nodes_down)
+    up_nodes_diff[,"color"] <- gsub("FF\$", "", up_nodes_diff[,"color"])
+    setNodePropertyBypass(up_nodes_diff\$id,up_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+
+  toggleGraphicsDetails()
+  exportImage("Network_up.pdf", 'PDF')
+  exportNetwork("Network.xgmml", type= 'xGMML')
+
+  #Down
+    down_nodes <- read.table("${nodes_down}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
+    down_edges <- read.table("${edges_down}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
+    down_edges[,"interaction"] <- "interacts"
+    down_edges[,"name"] <- paste(down_edges\$source, "(interacts)", down_edges\$target, sep=" ")
+    createNetworkFromDataFrames(down_nodes,down_edges, title="Network_up", collection="Networks" )
+    setVisualStyle(style.name)
+    lockNodeDimensions(FALSE, style.name)
+
+    use_peakscore = "${use_peakscore}"
+    if (use_peakscore=="true"){
+      down_edges_interaction <- down_edges[down_edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+      down_edges_interaction\$score <- 9*((down_edges_interaction\$score-min(down_edges_interaction\$score))/(max(down_edges_interaction\$score)-min(down_edges_interaction\$score)))+1
+      down_edges_factor <- down_edges[down_edges\$type %in% c("Factor-Distal", "Factor-Promoter"),]
+      down_edges_factor\$score <- 9*((down_edges_factor\$score-min(down_edges_factor\$score))/(max(down_edges_factor\$score)-min(down_edges_factor\$score)))+1
+      down_edges_score <- rbind(down_edges_interaction, down_edges_factor)
+    } else{
+      down_edges_score <- down_edges[down_edges\$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
+      down_edges_score\$score <- 9*((down_edges_score\$score-min(down_edges_score\$score))/(max(down_edges_score\$score)-min(down_edges_score\$score)))+1
+    }
+    setEdgePropertyBypass(edge.names=down_edges_score\$name, new.values=down_edges_score\$score, visual.property='EDGE_WIDTH',bypass = TRUE)
+
+    down_nodes_up_peak <- down_nodes[down_nodes\$log2FC >=${log2FC} & !is.na(down_nodes\$log2FC) & down_nodes\$padj <=${padj} & !is.na(down_nodes\$padj) & down_nodes\$type %in% c("Distal", "Promoter"),]
+    down_nodes_down_peak <- down_nodes[down_nodes\$log2FC <= -${log2FC} & !is.na(down_nodes\$log2FC) & down_nodes\$padj <=${padj} & !is.na(down_nodes\$padj) & down_nodes\$type %in% c("Distal", "Promoter"),]
+    down_nodes_up_gene <- down_nodes[down_nodes\$log2FC >=${expression_log2FC} & !is.na(down_nodes\$log2FC) & down_nodes\$padj <=${expression_padj} & !is.na(down_nodes\$padj) & down_nodes\$type == "Gene",]
+    down_nodes_down_gene <- down_nodes[down_nodes\$log2FC <= -${expression_log2FC} & !is.na(down_nodes\$log2FC) & down_nodes\$padj <=${expression_padj} & !is.na(down_nodes\$padj) & down_nodes\$type == "Gene",]
+    down_nodes_up <- rbind(down_nodes_up_peak, down_nodes_up_gene)
+    down_nodes_down <- rbind(down_nodes_down_peak, down_nodes_down_gene)
+    down_nodes_up[,"color"] <- map2color(log(down_nodes_up[,"log2FC"]),pal_up)
+    down_nodes_down[,"color"] <- map2color(log(abs(down_nodes_down[,"log2FC"])),pal_down)
+    down_nodes_diff <- rbind(down_nodes_up, down_nodes_down)
+    down_nodes_diff[,"color"] <- gsub("FF\$", "", down_nodes_diff[,"color"])
+    setNodePropertyBypass(down_nodes_diff\$id,down_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+
+  toggleGraphicsDetails()
+  exportImage("Network_down.pdf", 'PDF')
+  exportNetwork("Network_down.xgmml", type= 'xGMML')
+  }
+  """
+}
+
 if ({params.upset_plot | params.circos_plot | params.complete} && !params.filter_genes ){
   ch_upset_promoter_genes = file("No_input_upset_promoter_genes")
   ch_upset_distal_genes = file("No_input_upset_distal_genes")
 }
 
 /*
- * 11. UPSET PLOT FOR FACTOR BINDING IN ANCHOR POINTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERES FOR GENES
+ * 12. UPSET PLOT FOR FACTOR BINDING IN ANCHOR POINTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERES FOR GENES
  */
 process UPSET_PLOT {
-  publishDir "${params.outdir}/tmp/process11", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/tmp/process12", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Figures/Upset", mode: 'copy', pattern: 'Upset_plot_*.pdf', enabled: params.upset_plot | params.complete
 
   when:
@@ -1494,10 +1691,10 @@ if ({params.circos_plot | params.complete} && !params.filter_genes ){
 }
 
 /*
- * 12. CIRCOS PLOTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERED FOR GENES
+ * 13. CIRCOS PLOTS - ALL INTERACTIONS WITH FACTOR AND INTERACTIONS FILTERED FOR GENES
  */
 process CIRCOS_PLOT {
-  publishDir "${params.outdir}/tmp/process12", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/tmp/process13", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Figures/Circos", mode: 'copy', enabled: params.circos_plot | params.complete
 
   when:
@@ -1593,10 +1790,10 @@ process CIRCOS_PLOT {
 
 
 /*
- * 13. DIFFERTIAL PEAKS ASSOCIATES WITH DIFFERENTIAL GENE EXPRESSION
+ * 14. DIFFERTIAL PEAKS ASSOCIATES WITH DIFFERENTIAL GENE EXPRESSION
  */
 process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
-  publishDir "${params.outdir}/tmp/process13", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/tmp/process14", mode: 'copy', enabled: params.save_tmp
   publishDir "${params.outdir}/Differential_expression_associated_peaks", mode: 'copy'
 
   when:
