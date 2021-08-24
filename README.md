@@ -31,9 +31,10 @@ The pipeline consist of the following processes:
 7. **PEAK_INTERACTION_BASED_ANNOTATION** - Performing PLAC-seq based annotation of provided peak file(s)
 8. **INTERACTION_PEAK_INTERSECT [Optional]** - Interaction-centered intersection of peak file(s) with genomic interactions using using [`bedtools`](https://bedtools.readthedocs.io/en/latest/index.html)
 9. **ANNOTATE_INTERACTION_WITH_PEAKS [Optional]** - Interaction based annotation of 2D-bed file with provided peak files(s)
-10. **NETWORK [Optional]** - Creating files for network visualization of peak annotation in [`Cytoscape`](https://cytoscape.org/)
-11. **UPSET_PLOT [Optional]** - Upset plots for overlap of peak files in promoter and distal regions (only available in Multiple mode)
-12. **CIRCOS PLOT [Optional]** - Circos plot representing peak overlap in genomic interactions (only available in Multiple mode)
+10. **NETWORK [Optional]** - Creating files for network visualization of peak annotation
+11. **NETWORK VISUALIZATION [Optional]** - Visualizes networks using [`Cytoscape`](https://cytoscape.org/)
+12. **UPSET_PLOT [Optional]** - Upset plots for overlap of peak files in promoter and distal regions (only available in Multiple mode)
+13. **CIRCOS PLOT [Optional]** - Circos plot representing peak overlap in genomic interactions (only available in Multiple mode)
 
 
 ## Installation
@@ -58,6 +59,12 @@ perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install 
 ```
 
 ####  Launce pipeline:
+If you want to visualize peak annotation networks, Cytoscape must be installed and launced before running the pipeline. To install Cytoscape, follow the instructions at: http://cytoscape.org. Launce Cytoscape:
+```bash
+Cytoscape &
+```
+
+####  Launce pipeline:
 Dowload the pipeline (including main.nf & nextflow.config). To avoid having specify the path to the config file, make sure to place the two files in the same directory. Try to launce the pipeline:
 ```bash
 nextflow run PLAC_anno_2.nf --help
@@ -69,7 +76,7 @@ nextflow run PLAC_anno_2.nf --help
 | Input | Description |
 | --- | --- |
 | `--peaks` | Path to txt file specifying the name of the peak files(s) in the first column and the path to the file(s) in the second column (For example see: [peaks.txt](example_files/peaks.txt)). The recomended input format for the peak files are 6 column bed files (more columns are allowed but will be ignored): chr, start, end, peakID, peak score, strand. It is also possible to use a 3 column bed but then peakIDs are automaically generated and peak score and strand information are not available. |
-| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIC`](https://github.com/ay-lab/fithic). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `s--kip_anno` is used. |
+| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIC`](https://github.com/ay-lab/fithic). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `--skip_anno` is used. |
 | `--genome` | Specification of genome for annotation (e.g. mm10). Currently the annotation is performed by [`HOMER`](http://homer.ucsd.edu/homer/), visit documentation for details and available genomes: http://homer.ucsd.edu/homer. |
 
 #### Optional input
@@ -77,6 +84,9 @@ nextflow run PLAC_anno_2.nf --help
 | --- | --- |
 | `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Textfile with gene symbols, that is used for filtering of interactions associated with the specified genes. The filitering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visulaization (if `--network_mode` is set to `genes`). |
 | `--bed2D_anno` | Specifies path to annotated 2D-bed file if `--skip_anno` is used. |
+| `--peak_differential` | Only used in differntial mode. Specifies path to file that contain log2FC and adjusted p-value for peaks. The first column must contain peakID matching the 4th column in `--peaks`. The column for log2FC/padj can be specified using `--log2FC_column` and `--padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). |
+| `--expression` | Only used in differntial mode when `--skip_expression` is false (default). Specifies path to file that contain information about differntial expression between the two conditions. The first column must contain gene symbol. The column for log2FC/padj can be specified using `--expression_log2FC_column` and `--expression_padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). Note: make sure that you use the same direction for the comparison in `--peak_differential` and `--expression`. |
+
 
 ## Running the pipeline
 
@@ -99,7 +109,8 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argumnet. Requires specification of path to annotated 2D-bed by using the argumnet `--bed2D_anno`. |
 | `--annotate_interactions` | Specifes if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | `--network` | Specifes if files for network visualization in Cytoskape should be created. Only valid if `--complete` is set to false. |
-| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a genelist, provided by `--genes`). |
+| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a genelist, provided by `--genes`). 
+|`--use_peakscore` | If set to true, peak scores will be used to set edge width in netowrk visualization. Default: false. |
 | `--complete` | If set to true (default), all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating promblems. Default: false.
 | `--help` | Help message is shown. |
@@ -115,7 +126,18 @@ When the pipleine is run in multiple mode, some aditional processes based on pea
 | `--filter_genes` | Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument `--genes`. |
 
 ### Differntial mode specific arguments
-Differntial mode is in developemnt, and more information will be available shortly.
+When the pipleine is run in differential mode, some aditional processes based on peak overlap are available. The specific parameters for these processes are listed below:
+| Argumnet | Description |
+| `--log2FC_column` | Specifies which column in `--peak_differential` that contain the log2FC values. Deafult: 3 (standard DESEq2 output). |
+| `--padj_column` | Specifies which column in `--peak_differential` that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output). |
+| `--log2FC` | Set the log2FC treshold for differntial peaks. Default: 1.5 |
+| `--padj` | Set the adjusted p-value treshold for differntial peaks. Default: 0.05 |
+| `--skip_expression` | Use this argumnet if no  `--expression` file is provided. |
+| `--expression_log2FC_column` | Specifies which column in `--expression` that contain the log2FC values. Deafult: 3 (standard DESEq2 output). |
+| `--expression_padj_column` | Specifies which column in `--expression` that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output). |
+| `--expression_log2FC` | Set the log2FC treshold for differntial genes. Default: 1.5 |
+| `--expression_padj` | Set the adjusted p-value treshold for differntial genes. Default: 0.05 |
+
 
 
 ## Outputs and interpretation
