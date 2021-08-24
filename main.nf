@@ -34,13 +34,19 @@ def helpMessage() {
     --circos_plot                   If specified, Circos plot of peak overlap will be created. Only valid if --complete is set to false.
     --filter_genes                  Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided genelist (default: false). This option requires that a genelist is provided with the argument --genes.
 
-    Arguments - Multiple mode specific:
+    Arguments - Differntial mode specific:
     --peak_differntial [file]       Path to textfile that contain log2FC and adjusted p-value from differntial analyis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the aruguments --log2FC_column and --padj column.
-    --log2FC_column                 Specifies which column in the differntial peak file that contain log2FC values (default:3, standard DESeq2 output)
-    --padj_column                   Specifies which column in the differntial peak file that contain adjusted p-values (default:9, standard DESeq2 output)
-    --log2FC                        Log2FC treshold for differtial peak analysis
-    --padj                          Significance level for differtial peak analysis
+    --log2FC_column 	              Specifies which column in --peak_differential that contain the log2FC values. Deafult: 3 (standard DESEq2 output).
+    --padj_column 	                Specifies which column in --peak_differential that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output).
+    --log2FC 	                      Log2FC treshold for differntial peaks. Default: 1.5
+    --padj 	                        Adjusted p-value treshold for differntial peaks. Default: 0.05
     --expression [file]
+    --skip_expression 	            Use this argumnet if no --expression file is provided.
+    --expression_log2FC_column 	    Specifies which column in --expression that contain the log2FC values. Deafult: 3 (standard DESEq2 output).
+    --expression_padj_column 	      Specifies which column in --expression that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output).
+    --expression_log2FC 	          Set the log2FC treshold for differntial genes. Default: 1.5
+    --expression_padj 	            Set the adjusted p-value treshold for differntial genes. Default: 0.05
+    --expression [file]             Only used in differntial mode when `--skip_expression` is false (default). Specifies path to file that contain information about differntial expression between the two conditions. The first column must contain gene symbol. The column for log2FC/padj can be specified using `--expression_log2FC_column` and `--expression_padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). Note: make sure that you use the same direction for the comparison in `--peak_differential` and `--expression`.
 
   """.stripIndent()
   }
@@ -1797,7 +1803,7 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
   publishDir "${params.outdir}/Differential_expression_associated_peaks", mode: 'copy'
 
   when:
-  //params.mode == 'differnetial' && !params.skip_expression
+  params.mode == 'differnetial' && !params.skip_expression
 
   input:
   set val(peak_name), file(annotated_peaks) from ch_peak_PLACseq_annotated_for_differntial_expression
