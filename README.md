@@ -161,11 +161,12 @@ The main output of Plac_anno is the annotated peak file which is found in the `P
 In addition to the annotated peak file(s), a genelist that contain all genes annotated to the peaks. This genelist can be used for Gene Ontology enrichment analysis for example. 
 
 <details>
-  <summary>Click to expand!</summary>
+<summary>Output files:</summary>
 - `<outdir>/Peak_annotation/`
   - `<Peak_name>/<Prefix>_annotated.txt
   - `<Peak_name>/<Prefix>_annotated_genelsit.txt`:
 <details>
+  
 ### Interaction annotation
 
 ### Network
