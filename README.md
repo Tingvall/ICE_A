@@ -154,6 +154,11 @@ All outputs are placed in the direcory specified by `--outdir`. Dependeing on th
 
 ### Peak annotation
 
+#### Annotated peak file
+The main output of Plac_anno is the annotated peak file which is found in the `Peak_annotation/` directory. If run in multiple mode, an annotated peak file will be available for each input bed file. The output is a text file with the peak coordinates and score from the original bed file. For each peak, information about which gene(s) it is annotated to is included (EntrezID, Refseq, Enseml, symbol). In addition the type of annotation used for that particular peak is provided, with the options: Promoter (The peak is located <2500 bp from TSS), Plac_anno (annotation based on interaction in the 2D-bed),  proximal_anno (interaction loacted between 2500 and 10000bp from TSS) or Distal_no_Interaction (only available if `--unannotated` is specified, and include distal peaks that are not able to annotate by the provided genomic interactions and instead are annotated to closest gene). For interaction based annotation, the q-value for the interaction is included. In differntial mode, additional columns for log2FC and adjusted p-values for the differntial peaks are present
+
+#### Annotated peak file
+In addition to the annotated
 
 ### Interaction annotation
 
