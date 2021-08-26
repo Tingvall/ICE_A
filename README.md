@@ -164,10 +164,11 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
 <summary>Output files:</summary>
   
 - `<outdir>/Peak_annotation/`
-  - `<Peak_name>/<Prefix>_annotated.txt
+  - `<Peak_name>/<Prefix>_annotated.txt`
   - `<Peak_name>/<Prefix>_annotated_genelsit.txt`:
   
 <details>
+  
   
 ### Interaction annotation
 
