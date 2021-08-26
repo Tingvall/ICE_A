@@ -145,12 +145,12 @@ When the pipleine is run in differential mode, some aditional processes based on
 ## Outputs and interpretation
 
 All outputs are placed in the direcory specified by `--outdir`. Dependeing on the mode and options, a number of differnt subdirectories will be created within this directory:
-- `<outdir>/`: Interaction based annotation of the provided peak files
-  - `Peak_annotation/`
-  - `Interaction_annotation/`
-  - `Network/`
-  - `Co_occupancy/`
-  - `Differential_expression_associated_peaks/`
+- `<outdir>/`
+  - `Peak_annotation/`: Interaction based annotation of the provided peak files
+  - `Interaction_annotation/`: Interactions-centered annotation with peaks
+  - `Network/`: Files and figures realted to network visulaization of peak annotation 
+  - `Co_occupancy/`: Figures providing information about co-occupancy for multiple factors (only availbale if run in multiple mode)
+  - `Differential_expression_associated_peaks/`: Differetial peaks associated with changes in gene expression (only availbale if run in differntial mode)
 
 ### Peak annotation
 
