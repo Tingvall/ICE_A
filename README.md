@@ -160,7 +160,7 @@ All outputs are placed in the direcory specified by `--outdir`. Dependeing on th
 - `<outdir>/Peak_annotation/`
   - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s)
   - `<sample>_<prefix>_annotated_genelsit.txt`: Genelist
-<details>
+</details>
 
 
 #### Annotated peak file
