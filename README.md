@@ -179,8 +179,31 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
     - `Network_Edges_<prefix>_interactions.txt`: Edges for network
     - `Network_Nodes_<prefix>_interactions.txt`: Nodes for network
   - `Visualization/`
+    - `Network.pdf`: Network visualization in pdf format
+    - `Network.xgmml`: Network visualization in xgmml format. Can be imported into Cytoscape for an interactive network.
 
 
-### Co-occupancy
+### Co-occupancy (only created in multiple mode)
 
-### Differential expression associated peaks
+- `<outdir>/Co_occupancy/`
+  - `Upset/`
+    - `Upset_plot_Promoter_all.pdf`: Co-occupancy Upset plot for promoter regions
+    - `Upset_plot_Promoter_all.pdf`: Co-occupancy Upset plot for distal regions
+    - `Upset_plot_Promoter_genelist.pdf`: Co-occupancy Upset plot for promoter regions for region associated with provided genelist
+    - `Upset_plot_Promoter_genelist.pdf`: Co-occupancy Upset plot for distal regions for region associated with provided genelist
+  - `Circos/`
+    - `Circos_plot_peaks.pdf`: Co-occupancy Circos plot 
+    - `Circos_plot_genes.pdf` (optinal): Co-occupancy Circos plot for selected genes
+
+
+### Differential expression associated peaks (only created in differential mode)
+
+- `<outdir>/Differential_expression_associated_peaks/`
+  - `<sample>_<prefix>_annotated_differential_expression.txt`: Differntial peaks associated with changes in gene expression
+  - `<sample>_<prefix>_annotated_differential_expression_proximal_activating.txt`
+  - `<sample>_<prefix>_annotated_differential_expression_proximal_repressive.txt`
+  - `<sample>_<prefix>_annotated_differential_expression_distal_activating.txt`
+  - `<sample>_<prefix>_annotated_differential_expression_distal_repressive.txt`
+
+
+
