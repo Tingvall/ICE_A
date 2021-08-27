@@ -155,7 +155,7 @@ All outputs are placed in the direcory specified by `--outdir`. Dependeing on th
 ### Peak annotation
 
 <details>
-  <summary>### Peak annotation</summary>
+  <summary>Output files</summary>
   
 - `<outdir>/Peak_annotation/`
   - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s)
@@ -172,12 +172,19 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
   
 ### Interaction annotation
 
+<details>
+  <summary>Output files</summary>
+  
 - `<outdir>/Interaction_annotation/`
   - `<prefix>__HOMER_annotated_interactions.txt`: HOMER-annotated 2D-bed
   - `<prefix>__HOMER_annotated_interactions_with_peak_overlap.txt`: HOMER-annotated 2D-bed with peak overlap 
   - `<sample>_${prefix}_interactions.txt`: Sample associated interactions
+</details>
 
 ### Network
+
+<details>
+<summary>Output files</summary>
 
 - `<outdir>/Network/`
   - `Files/`
@@ -186,9 +193,13 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
   - `Visualization/`
     - `Network.pdf`: Network visualization in pdf format
     - `Network.xgmml`: Network visualization in xgmml format. Can be imported into Cytoscape for an interactive network.
+</details>
 
 
 ### Co-occupancy (only created in multiple mode)
+
+<details>
+<summary>Output files</summary>
 
 - `<outdir>/Co_occupancy/`
   - `Upset/`
@@ -199,9 +210,13 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
   - `Circos/`
     - `Circos_plot_peaks.pdf`: Co-occupancy Circos plot 
     - `Circos_plot_genes.pdf` (optinal): Co-occupancy Circos plot for selected genes
+</details>
 
 
 ### Differential expression associated peaks (only created in differential mode)
+
+<details>
+<summary>Output files</summary>
 
 - `<outdir>/Differential_expression_associated_peaks/`
   - `<sample>_<prefix>_annotated_differential_expression.txt`: Differntial peaks associated with changes in gene expression
@@ -209,6 +224,7 @@ In addition to the annotated peak file(s), a genelist that contain all genes ann
   - `<sample>_<prefix>_annotated_differential_expression_proximal_repressive.txt`
   - `<sample>_<prefix>_annotated_differential_expression_distal_activating.txt`
   - `<sample>_<prefix>_annotated_differential_expression_distal_repressive.txt`
+</details>
 
 
 
