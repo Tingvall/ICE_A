@@ -155,7 +155,7 @@ All outputs are placed in the direcory specified by `--outdir`. Dependeing on th
 ### Peak annotation
 
 <details>
-  <summary>Click to expand!</summary>
+  <summary>### Peak annotation</summary>
   
 - `<outdir>/Peak_annotation/`
   - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s)
