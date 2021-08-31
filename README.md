@@ -6,6 +6,7 @@ Gene regulation is a complex interplay between epigenetic factors and transcript
 
 Placseq_anno is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for Placseq_anno, is to perform peak-centerd annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this Placseq_anno provides the option to perform interaction-centers annotation. Placseq_anno can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape. 
 
+![Peakock](https://github.com/Tingvall/placseq_anno/blob/main/Peakock.pdf)
 
 ### Annotation modes
 To fashiliate anootation of differnt types of input data, the pipeline can be run in three differnt modes: basic, multiple and differential:
