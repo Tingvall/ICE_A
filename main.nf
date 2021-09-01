@@ -71,13 +71,13 @@ else{
 if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
     ch_peaks
         .splitCsv(header:true, sep:'\t')
-        .map { row -> [ row.peak_name, [ file(row.peak_file) ] ] }
+        .map { row -> [ row.sample, [ file(row.path) ] ] }
         .set { ch_peaks_split}
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
 
-if (params.network && params.network_mode == 'genes') {
+if (params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
 }
 else {
@@ -86,17 +86,26 @@ else {
 
 if (params.mode == 'differential') {
   if (params.peak_differential)     { ch_peak_differential = Channel.fromPath(params.peak_differential, checkIfExists: true) } else { exit 1, 'Peak file log2FC and adjusted p-value not provided' }
+  ch_peak_differential.into { ch_peak_differential_1; ch_peak_differential_2; ch_peak_differential_3 }
   if (!params.skip_expression) {
     if (params.expression)     { ch_expression = Channel.fromPath(params.expression, checkIfExists: true) } else { exit 1, 'Expression file not provided' }
+    ch_expression.into {ch_expression_1; ch_expression_2}
   }
-  else {ch_expression = file(params.expression)}
+  else {ch_expression = file(params.expression)
+    ch_expression_1 = file(params.expression)
+    ch_expression_2 = file(params.expression)
+  }
 }
 else {
-  ch_peak_differential = file(params.genes)
-  ch_expression = file(params.expression)
+  ch_peak_differential_1 = file(params.peak_differential)
+  ch_peak_differential_2 = file(params.peak_differential)
+  ch_peak_differential_3 = file(params.peak_differential)
+
+  ch_expression_1 = file(params.expression)
+  ch_expression_2 = file(params.expression)
+
 }
-ch_peak_differential.into { ch_peak_differential_1; ch_peak_differential_2; ch_peak_differential_3 }
-ch_expression.into {ch_expression_1; ch_expression_2}
+
 if (params.mode == 'basic') {
 println ("""
         ===========================================================================================
@@ -232,7 +241,7 @@ process ANNOTATE_INTERACTION {
  */
 process JOIN_ANNOTATED_INTERACTIONS {
     publishDir "${params.outdir}/tmp/process3", mode: 'copy', enabled: params.save_tmp
-    publishDir "${params.outdir}/Interaction_Annotation/", mode: 'copy', enabled: params.annotate_interactions | params.complete
+    publishDir "${params.outdir}/Interaction_annotation/All_interactions", mode: 'copy', enabled: params.annotate_interactions | params.complete
 
     when:
     !params.skip_anno
@@ -349,7 +358,7 @@ if (params.skip_anno) {
    */
   process PEAK_INTERACTION_BASED_ANNOTATION {
     publishDir "${params.outdir}/tmp/process7", mode: 'copy', enabled: params.save_tmp
-    publishDir "${params.outdir}/Peak_Annotation/${peak_name}", mode: 'copy'
+    publishDir "${params.outdir}/Peak_annotation/${peak_name}", mode: 'copy'
 
     input:
     set val(peak_name), file(peak_anno_anchor1), file(peak_anno_anchor2), file(peak_anno), file(bed2D_index_anno) from ch_peak_anno_anchor1.join(ch_peak_anno_anchor2).join(ch_peak_anno).combine(ch_bed2D_index_anno_1)
@@ -409,14 +418,14 @@ if (params.skip_anno) {
     Peak_overlap_merge['Annotation'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 2500, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 10000, 'Proximal_anno', 'Plac_anno')))
 
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
-    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Promoter','Proximal_anno']),['Chr', 'Start', 'End', 'Peak_score', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Annotation']].drop_duplicates()
+    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Promoter','Proximal_anno']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Annotation']].drop_duplicates()
     Proximal['Q-value'] = np.nan
-    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
 
     # Extracting PLAC-seq annotated peaks
     Distal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Plac_anno']),:].dropna(subset=['InteractionID'])
-    Distal = Distal.loc[(Distal['Anchor_Overlap_TSS'] == 0) & (Distal['Anchor_Interaction_TSS'] == 1),['Chr', 'Start', 'End', 'Peak_score', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Annotation', 'Q-Value']].drop_duplicates()
-    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+    Distal = Distal.loc[(Distal['Anchor_Overlap_TSS'] == 0) & (Distal['Anchor_Interaction_TSS'] == 1),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Annotation', 'Q-Value']].drop_duplicates()
+    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
 
     # Merge proximity and PLAC-seq annotated peaks
     Proximal_Distal = pd.concat([Proximal, Distal]).sort_index().rename_axis('Peak')
@@ -425,9 +434,9 @@ if (params.skip_anno) {
     proximity_unannotated = "${proximity_unannotated}"
     if proximity_unannotated == 'true':
         # Extracting unannotated distal peaks (not overlapping 2D-bed)
-        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
+        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
         Unannotated['Annotation'], Unannotated['Q-value'] = ['Distal_no_Interaction', np.NaN]
-        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
         Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
 
 
@@ -498,7 +507,7 @@ if (params.skip_anno) {
 }
 
 def criteria = multiMapCriteria {
-                     peak_names: it[0]
+                     sample: it[0]
                      peaks_beds: it[1]
                    }
 
@@ -517,7 +526,7 @@ process INTERACTION_PEAK_INTERSECT {
   params.annotate_interactions | params.network | params.upset_plot | params.circos_plot | params.complete
 
   input:
-  val peak_names from ch_t_1.peak_names.collect().map{ it2 -> it2.join(' ')}
+  val sample from ch_t_1.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
@@ -537,8 +546,8 @@ process INTERACTION_PEAK_INTERSECT {
 
   else if (params.mode == 'multiple')
     """
-    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds -names $peak_names > Anchor_1_peak_collect.bed
-    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds -names $peak_names > Anchor_2_peak_collect.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
     """
 }
 
@@ -548,7 +557,8 @@ process INTERACTION_PEAK_INTERSECT {
  */
 process ANNOTATE_INTERACTION_WITH_PEAKS {
   publishDir "${params.outdir}/tmp/process9", mode: 'copy', enabled: params.save_tmp
-  publishDir "${params.outdir}/Interaction_Annotation", mode: 'copy', pattern: '*.txt', enabled: params.annotate_interactions | params.complete
+  publishDir "${params.outdir}/Interaction_annotation/Peak_sepcific_interactions", mode: 'copy', pattern: '*{interactions, up, down}.txt', enabled: params.annotate_interactions | params.complete
+  publishDir "${params.outdir}/Interaction_annotation/All_interactions", mode: 'copy', pattern: '*overlap.txt', enabled: params.annotate_interactions | params.complete
 
   when:
   params.annotate_interactions | params.network | params.upset_plot | params.circos_plot | params.complete
@@ -558,11 +568,13 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   path anchor_2_peak_collect from ch_anchor_2_peak_collect
   path bed2D_index_anno from ch_bed2D_index_anno_2
   val prefix from Channel.value(params.prefix)
-  val peak_names from ch_t_2.peak_names.collect().map{ it2 -> it2.join(' ')}
+  val sample from ch_t_2.sample.collect().map{ it2 -> it2.join(' ')}
   val network from Channel.value(params.network)
   val complete from Channel.value(params.complete)
-  val gene_correlation from Channel.value(params.gene_correlation)
 
+  //Multiple mode specific
+  val upset_plot from Channel.value(params.upset_plot)
+  val circos_plot from Channel.value(params.circos_plot)
 
   //Differntial mode specific
   path peak_differential from ch_peak_differential_2
@@ -570,11 +582,13 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   val padj_column from Channel.value(params.padj_column)
   val log2FC from Channel.value(params.log2FC)
   val padj from Channel.value(params.padj)
+  val gene_correlation from Channel.value(params.gene_correlation)
+
 
   output:
   path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
   path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all
-  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggreagted.txt" optional true into ch_interactions_all_not_aggregated
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_aggregated
   path "*_${prefix}_interactions_up.txt" optional true into ch_interactions_up
   path "*_${prefix}_interactions_down.txt" optional true into ch_interactions_down
 
@@ -627,14 +641,14 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
-    anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
+    anchors_peaks_anno_factor.to_csv("${sample}_${prefix}_interactions.txt", index=False, sep='\t' )
     anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=True, sep='\t' )
 
     # Save files for Network
     network = "${network}"
     complete = "${complete}"
     if (network == 'true' or complete == 'true'):
-      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggreagted.txt", index=True, sep='\t' )
+      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt", index=True, sep='\t' )
     """
 
   else if (params.mode == 'multiple')
@@ -704,8 +718,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     plot_upset = "${upset_plot}"
     circos_plot = "${circos_plot}"
     complete = "${complete}"
-    if (network == 'true' or complete == 'true' or plot_upset =='true', circos_plot =='true'):
-      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggreagted.txt", index=True, sep='\t' )
+    if (network == 'true' or complete == 'true' or plot_upset =='true' or circos_plot =='true'):
+      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt", index=True, sep='\t' )
     """
 
   else if (params.mode == 'differential')
@@ -769,9 +783,9 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
-    anchors_peaks_anno_factor.to_csv("${peak_names}_${prefix}_interactions.txt", index=False, sep='\t' )
-    anchors_peaks_anno_up.to_csv("${peak_names}_${prefix}_interactions_up.txt", index=False, sep='\t' )
-    anchors_peaks_anno_down.to_csv("${peak_names}_${prefix}_interactions_down.txt", index=False, sep='\t' )
+    anchors_peaks_anno_factor.to_csv("${sample}_${prefix}_interactions.txt", index=False, sep='\t' )
+    anchors_peaks_anno_up.to_csv("${sample}_${prefix}_interactions_up.txt", index=False, sep='\t' )
+    anchors_peaks_anno_down.to_csv("${sample}_${prefix}_interactions_down.txt", index=False, sep='\t' )
     anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=True, sep='\t' )
 
 
@@ -780,7 +794,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     complete = "${complete}"
     gene_correlation = "${gene_correlation}"
     if (network == 'true' or complete == 'true' or gene_correlation =='true'):
-      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggreagted.txt", index=True, sep='\t' )
+      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt", index=True, sep='\t' )
     """
 }
 
@@ -789,7 +803,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
 */
 process NETWORK {
 publishDir "${params.outdir}/tmp/process10", mode: 'copy', enabled: params.save_tmp
-publishDir "${params.outdir}/Network", mode: 'copy', pattern: 'Network_*_interactions_*.txt', enabled: params.network | params.complete
+publishDir "${params.outdir}/Network/Files", mode: 'copy', pattern: 'Network_*_interaction*.txt', enabled: params.network | params.complete
 
 when:
 params.network | params.upset_plot | params.circos_plot | params.complete
@@ -799,11 +813,12 @@ path interactions_annotated from ch_interactions_all
 path interactions_annotated_not_aggregated from ch_interactions_all_not_aggregated
 path genes from ch_genes
 val prefix from Channel.value(params.prefix)
-val peak_names from ch_t_3.peak_names.collect().map{ it2 -> it2.join(' ')}
+val sample from ch_t_3.sample.collect().map{ it2 -> it2.join(' ')}
 val network_mode from Channel.value(params.network_mode)
 val filter_genes from Channel.value(params.filter_genes)
 val complete from Channel.value(params.complete)
 val skip_expression from Channel.value(params.skip_expression)
+val promoter_promoter from Channel.value(params.promoter_promoter)
 
 //Multiple mode specific
 val upset_plot from Channel.value(params.upset_plot)
@@ -858,8 +873,8 @@ if (params.mode == 'basic')
   ### Creating edge table for cytoscape
   #Factor-Interaction
   Factor_Interaction = anchors_peaks_anno.copy(deep=True)
-  Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = "${peak_names}"
-  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "${peak_names}"
+  Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = "${sample}"
+  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "${sample}"
   Factor_Interaction = Factor_Interaction[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID','Peak1_score', 'chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score', 'TSS_1', 'TSS_2']]
   Factor_Interaction['Anchor1'] = Factor_Interaction['chr1'].map(str) +':'+ (Factor_Interaction['s1']).map(str) +'-'+ Factor_Interaction['e1'].map(str)
   Factor_Interaction['Anchor2'] = Factor_Interaction['chr2'].map(str) +':'+ (Factor_Interaction['s2']).map(str) +'-'+ Factor_Interaction['e2'].map(str)
@@ -906,10 +921,13 @@ if (params.mode == 'basic')
   Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
 
   network_mode = "${network_mode}"
+  promoter_promoter="${promoter_promoter}"
+
 
   if network_mode == "factor":
     #Filter edges based on factor
-    Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter['Target'])]
+    Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
+    #Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter['Target'])]
     Promoter_Promoter_filt_f = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter['Target'])]
     Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Source'])| Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Target'])]
 
@@ -924,45 +942,71 @@ if (params.mode == 'basic')
 
   ### Creating edge table for cytoscape
   if network_mode == "all":
-    Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    else:
+      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
   elif network_mode == "factor":
-    Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    else:
+      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
   elif network_mode == "genes":
-    Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+    else:
+      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
   Nodes.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
 
 
   ### Creating node table for cytoscape
-
   if network_mode == "all":
     #Specifying node type for all nodes
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) | Nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) , 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "factor":
     # Specifying node type for all nodes that are associated with factor binding
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
+                                   (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) , 'Promoter',
+                                      (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "genes":
     # Specifying node type for all nodes that are associated with selected genes
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target'])| Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) , 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
 
   Nodes.to_csv("Network_Nodes_${prefix}_interactions.txt", index=False, sep='\t' )
   """
@@ -1030,31 +1074,45 @@ else if (params.mode == 'multiple')
   Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
 
   network_mode = "${network_mode}"
+  promoter_promoter="${promoter_promoter}"
 
   if network_mode == "factor":
-    #Filter edges based on factor
-    Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter['Target'])]
-    Promoter_Promoter_filt_f = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter['Target'])]
-    Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Source'])| Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Target'])]
+  #Filter edges based on factor
+      Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
+      if promoter_promoter =="true":
+          Promoter_Promoter_filt_f = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter['Target'])]
+          Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Source'])| Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Target'])]
+      else:
+          Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source'])]
 
   elif network_mode == "genes":
     #Filter edges based on gene
     genes = pd.read_table("${genes}", header=None)
     Promoter_Gene_filt_g = Promoter_Gene[Promoter_Gene['Target'].isin(genes.iloc[:,0])]
-    Promoter_Promoter_filt_g = Promoter_Promoter[Promoter_Promoter['Source'].isin(Promoter_Gene_filt_g['Source']) | Promoter_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+    if promoter_promoter =="true":
+      Promoter_Promoter_filt_g = Promoter_Promoter[Promoter_Promoter['Source'].isin(Promoter_Gene_filt_g['Source']) | Promoter_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
     Distal_Promoter_filt_g = Distal_Promoter[Distal_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
     Factor_Promoter_filt_g = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
     Factor_Distal_filt_g = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g['Source'])]
 
   ### Creating edge table for cytoscape
   if network_mode == "all":
-    Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    else:
+      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
   elif network_mode == "factor":
-    Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    else:
+      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
   elif network_mode == "genes":
-    Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+    if promoter_promoter =="true":
+      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+    else:
+      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
   Nodes.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
 
@@ -1063,30 +1121,48 @@ else if (params.mode == 'multiple')
 
   if network_mode == "all":
     #Specifying node type for all nodes
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) | Nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | nodes['Node'].isin(Factor_Promoter['Target']), 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "factor":
     # Specifying node type for all nodes that are associated with factor binding
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
+                                   (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Factor_Promoter['Target']), 'Promoter',
+                                      (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "genes":
     # Specifying node type for all nodes that are associated with selected genes
-    Nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
     Nodes.columns=['Node']
-    Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+    if promoter_promoter =="true":
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
                                        (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
+    else:
+      Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target'])  | Nodes['Node'].isin(Factor_Promoter_filt_g['Target']), 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
 
   Nodes.to_csv("Network_Nodes_${prefix}_interactions.txt", index=False, sep='\t' )
 
@@ -1103,7 +1179,8 @@ else if (params.mode == 'multiple')
       Factor_Promoter_filt_g.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Promoter_genes.txt", index=False, sep='\t' )
       Factor_Distal_filt_g.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv("UpSet_${prefix}_interactions_Distal_genes.txt", index=False, sep='\t' )
   """
-if (params.mode == 'differential')
+
+else if (params.mode == 'differential')
   """
   #!/usr/bin/env python
 
@@ -1119,7 +1196,7 @@ if (params.mode == 'differential')
     expression = pd.read_table("${expression}", index_col=0).sort_index()
     expression = expression.iloc[:, [${expression_log2FC_column}-2, ${expression_padj_column}-2]]
     expression.columns = ['log2FC', 'padj']
-    expression_diff = expression.loc[(expression['padj'] <= ${padj}) & (abs(expression['log2FC']) <= ${log2FC}),:]
+    expression_diff = expression.loc[(expression['padj'] <= ${padj}) & (abs(expression['log2FC']) >= ${log2FC}),:]
 
   # Aggregating interaction file to only incude one row per interaction
   interactions_anno = interactions_anno.iloc[:,np.r_[0:5,9:17, 21:len(anchors_peaks_anno.columns)]]
@@ -1130,8 +1207,8 @@ if (params.mode == 'differential')
   ### Creating edge table for cytoscape
   #Factor-Interaction
   Factor_Interaction = anchors_peaks_anno.copy(deep=True)
-  Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = "${peak_names}"
-  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "${peak_names}"
+  Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = "${sample}"
+  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "${sample}"
   Factor_Interaction = Factor_Interaction[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID','Peak1_score', 'log2FC_1', 'padj_1','chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score','log2FC_2', 'padj_2', 'TSS_1', 'TSS_2']]
   Factor_Interaction['Anchor1'] = Factor_Interaction['chr1'].map(str) +':'+ (Factor_Interaction['s1']).map(str) +'-'+ Factor_Interaction['e1'].map(str)
   Factor_Interaction['Anchor2'] = Factor_Interaction['chr2'].map(str) +':'+ (Factor_Interaction['s2']).map(str) +'-'+ Factor_Interaction['e2'].map(str)
@@ -1219,15 +1296,19 @@ if (params.mode == 'differential')
   Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
 
   network_mode = "${network_mode}"
+  promoter_promoter="${promoter_promoter}"
 
   if network_mode == "factor":
   #Filter edges based on factor
-      Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter['Target'])]
-      Promoter_Promoter_filt_f = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter['Target'])]
-      Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Source'])| Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Target'])]
+      Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
+      promoter_promoter="${promoter_promoter}"
+      if promoter_promoter =="true":
+          Promoter_Promoter_filt_f = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter['Target'])]
+          Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Source'])| Promoter_Gene['Source'].isin(Promoter_Promoter_filt_f['Target'])]
+      else:
+          Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Source'])]
 
   elif (network_mode == "genes" or network_mode == "expression"):
-
       #Filter edges based on gene
       if network_mode == "genes":
           genes = pd.read_table("${genes}", header=None)
@@ -1236,7 +1317,8 @@ if (params.mode == 'differential')
           genes = pd.DataFrame(pd.unique(expression_diff.index.dropna().values.ravel('K')))
 
       Promoter_Gene_filt_g = Promoter_Gene[Promoter_Gene['Target'].isin(genes.iloc[:,0])]
-      Promoter_Promoter_filt_g = Promoter_Promoter[Promoter_Promoter['Source'].isin(Promoter_Gene_filt_g['Source']) | Promoter_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+      if promoter_promoter =="true":
+          Promoter_Promoter_filt_g = Promoter_Promoter[Promoter_Promoter['Source'].isin(Promoter_Gene_filt_g['Source']) | Promoter_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
       Distal_Promoter_filt_g = Distal_Promoter[Distal_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
       Factor_Promoter_filt_g = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
       Factor_Distal_filt_g = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g['Source'])]
@@ -1244,34 +1326,52 @@ if (params.mode == 'differential')
   elif network_mode == "differential":
       #Filter edges based on differnetial peaks
       Distal_Promoter_filt_diff = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal_diff['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter_diff['Target'])]
-      Promoter_Promoter_filt_diff = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_diff['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_diff['Target'])]
-      Promoter_Gene_filt_diff = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_diff['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_diff['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_diff['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_diff['Target'])]
-
       Distal_Promoter_filt_up = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal_up['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter_up['Target'])]
-      Promoter_Promoter_filt_up = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_up['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_up['Target'])]
-      Promoter_Gene_filt_up = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_up['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_up['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_up['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_up['Target'])]
-
       Distal_Promoter_filt_down = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal_down['Target']) | Distal_Promoter['Target'].isin(Factor_Promoter_down['Target'])]
-      Promoter_Promoter_filt_down = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_down['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_down['Target'])]
-      Promoter_Gene_filt_down = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_down['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_down['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_down['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_down['Target'])]
+
+      if promoter_promoter =="true":
+          Promoter_Promoter_filt_diff = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_diff['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_diff['Target'])]
+          Promoter_Gene_filt_diff = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_diff['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_diff['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_diff['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_diff['Target'])]
+          Promoter_Promoter_filt_up = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_up['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_up['Target'])]
+          Promoter_Gene_filt_up = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_up['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_up['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_up['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_up['Target'])]
+          Promoter_Promoter_filt_down = Promoter_Promoter[Promoter_Promoter['Source'].isin(Factor_Promoter_down['Target']) | Promoter_Promoter['Target'].isin(Factor_Promoter_down['Target'])]
+          Promoter_Gene_filt_down = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_down['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_down['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_down['Source']) | Promoter_Gene['Source'].isin(Promoter_Promoter_filt_down['Target'])]
+      else:
+          Promoter_Gene_filt_diff = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_diff['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_diff['Source'])]
+          Promoter_Gene_filt_up = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_up['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_up['Source'])]
+          Promoter_Gene_filt_down = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter_down['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_down['Source'])]
 
   ### Creating edge table for cytoscape
   if network_mode == "all":
-      Egdes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    if promoter_promoter =="true":
+        Egdes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+    else:
+        Egdes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
   elif network_mode == "factor":
-      Egdes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    if promoter_promoter =="true":
+        Egdes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+    else:
+        Egdes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
-  elif (network_mode == "genes" or network_mode== "expression"):
-      Egdes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+  elif (network_mode == "genes" or network_mode == "expression"):
+    if promoter_promoter =="true":
+        Egdes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+    else:
+        Egdes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
   elif network_mode == "differential":
-      Egdes =  Factor_Distal_diff.append([Factor_Promoter_diff, Distal_Promoter_filt_diff, Promoter_Promoter_filt_diff, Promoter_Gene_filt_diff]).drop_duplicates()
-      Egdes.to_csv("Network_Edges_${prefix}_interactions_differential.txt", index=False, sep='\t' )
-      Egdes_up =  Factor_Distal_up.append([Factor_Promoter_up, Distal_Promoter_filt_up, Promoter_Promoter_filt_up, Promoter_Gene_filt_up]).drop_duplicates()
-      Egdes_up.to_csv("Network_Edges_${prefix}_interactions_up.txt", index=False, sep='\t' )
-      Egdes_down =  Factor_Distal_down.append([Factor_Promoter_down, Distal_Promoter_filt_down, Promoter_Promoter_filt_down, Promoter_Gene_filt_down]).drop_duplicates()
-      Egdes_down.to_csv("Network_Edges_${prefix}_interactions_down.txt", index=False, sep='\t' )
+    if promoter_promoter =="true":
+        Egdes =  Factor_Distal_diff.append([Factor_Promoter_diff, Distal_Promoter_filt_diff, Promoter_Promoter_filt_diff, Promoter_Gene_filt_diff]).drop_duplicates()
+        Egdes_up =  Factor_Distal_up.append([Factor_Promoter_up, Distal_Promoter_filt_up, Promoter_Promoter_filt_up, Promoter_Gene_filt_up]).drop_duplicates()
+        Egdes_down =  Factor_Distal_down.append([Factor_Promoter_down, Distal_Promoter_filt_down, Promoter_Promoter_filt_down, Promoter_Gene_filt_down]).drop_duplicates()
+    else:
+        Egdes =  Factor_Distal_diff.append([Factor_Promoter_diff, Distal_Promoter_filt_diff, Promoter_Gene_filt_diff]).drop_duplicates()
+        Egdes_up =  Factor_Distal_up.append([Factor_Promoter_up, Distal_Promoter_filt_up, Promoter_Gene_filt_up]).drop_duplicates()
+        Egdes_down =  Factor_Distal_down.append([Factor_Promoter_down, Distal_Promoter_filt_down, Promoter_Gene_filt_down]).drop_duplicates()
+
+    Egdes_up.to_csv("Network_Edges_${prefix}_interactions_up.txt", index=False, sep='\t' )
+    Egdes_down.to_csv("Network_Edges_${prefix}_interactions_down.txt", index=False, sep='\t' )
 
   Egdes.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
 
@@ -1285,101 +1385,138 @@ if (params.mode == 'differential')
   Factor_stat = Factor_stat_1.append(Factor_stat_2).drop_duplicates()
 
   if network_mode == "all":
-      #Specifying node type for all nodes
-      nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
-      nodescolumns=['Node']
-      nodes['Node_type'] = np.where(nodes['Node'].isin(Factor_Distal['Source']) | nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
-                                  (np.where(nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
-                                     (np.where(nodes['Node'].isin(Distal_Promoter['Target']) | nodes['Node'].isin(Promoter_Promoter['Source']) | nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
-                                        (np.where(nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
+    #Specifying node type for all nodes
+    Nodes = pd.DataFrame(pd.unique(Egdes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes.columns=['Node']
+    if promoter_promoter =="true":
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                    (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
+                                       (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) | Nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
+                                          (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
+    else:
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']), 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "factor":
-      # Specifying node type for all nodes that are associated with factor binding
-      nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
-      nodes.columns=['Node']
-      nodes['Node_type'] = np.where(nodes['Node'].isin(Factor_Distal['Source']) | nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
-                                  (np.where(nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
-                                     (np.where(nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | nodes['Node'].isin(Promoter_Promoter_filt_f['Source']) | nodes['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
-                                        (np.where(nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
+    # Specifying node type for all nodes that are associated with factor binding
+    Nodes = pd.DataFrame(pd.unique(Egdes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes.columns=['Node']
+    if promoter_promoter =="true":
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                    (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
+                                       (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_f['Target']), 'Promoter',
+                                          (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
+    else:
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
+                                (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Source']), 'Distal',
+                                   (np.where(Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Factor_Promoter['Source']) , 'Promoter',
+                                      (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
 
-  elif (network_mode == "genes" or network_mode == "expression"):
-      # Specifying node type for all nodes that are associated with selected genes
-      nodes = pd.DataFrame(pd.unique(Nodes[['Source', 'Target']].dropna().values.ravel('K')))
-      nodes.columns=['Node']
-      nodes['Node_type'] = np.where(nodes['Node'].isin(Factor_Distal_filt_g['Source']) | nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
-                                  (np.where(nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
-                                     (np.where(nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
-                                        (np.where(nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
-
+  elif (network_mode == "genes" or network_mode == "expression" ):
+    # Specifying node type for all nodes that are associated with selected genes
+    Nodes = pd.DataFrame(pd.unique(Egdes[['Source', 'Target']].dropna().values.ravel('K')))
+    Nodes.columns=['Node']
+    if promoter_promoter =="true":
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+                                    (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
+                                       (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
+                                          (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
+    else:
+        Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Target']), 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
 
   elif network_mode == "differential":
       # Specifying node type for all nodes that are associated with differntial factor binding
-      nodes = pd.DataFrame(pd.unique(Egdes[['Source', 'Target']].dropna().values.ravel('K')))
-      nodes.columns=['Node']
-      nodes['Node_type'] = np.where(nodes['Node'].isin(Factor_Distal_diff['Source']) | nodes['Node'].isin(Factor_Promoter_diff['Source']), 'Factor',
-                                  (np.where(nodes['Node'].isin(Distal_Promoter_filt_diff['Source']), 'Distal',
-                                     (np.where(nodes['Node'].isin(Distal_Promoter_filt_diff['Target']) | nodes['Node'].isin(Promoter_Promoter_filt_diff['Source']) | nodes['Node'].isin(Promoter_Promoter_filt_diff['Target']), 'Promoter',
-                                        (np.where(nodes['Node'].isin(Promoter_Gene_filt_diff['Target']), 'Gene', np.nan)))))))
+      Nodes = pd.DataFrame(pd.unique(Egdes[['Source', 'Target']].dropna().values.ravel('K')))
+      Nodes.columns=['Node']
+      Nodes_up = pd.DataFrame(pd.unique(Egdes_up[['Source', 'Target']].dropna().values.ravel('K')))
+      Nodes_up.columns=['Node']
+      Nodes_down = pd.DataFrame(pd.unique(Egdes_down[['Source', 'Target']].dropna().values.ravel('K')))
+      Nodes_down.columns=['Node']
 
-      nodes_up = pd.DataFrame(pd.unique(Egdes_up[['Source', 'Target']].dropna().values.ravel('K')))
-      nodes_up.columns=['Node']
-      nodes_up['Node_type'] = np.where(nodes_up['Node'].isin(Factor_Distal_up['Source']) | nodes_up['Node'].isin(Factor_Promoter_up['Source']), 'Factor',
-                                  (np.where(nodes_up['Node'].isin(Distal_Promoter_filt_up['Source']), 'Distal',
-                                     (np.where(nodes_up['Node'].isin(Distal_Promoter_filt_up['Target']) | nodes_up['Node'].isin(Promoter_Promoter_filt_up['Source']) | nodes_up['Node'].isin(Promoter_Promoter_filt_up['Target']), 'Promoter',
-                                        (np.where(nodes_up['Node'].isin(Promoter_Gene_filt_up['Target']), 'Gene', np.nan)))))))
+      if promoter_promoter =="true":
+          Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_diff['Source']) | Nodes['Node'].isin(Factor_Promoter_diff['Source']), 'Factor',
+                                    (np.where(Nodes['Node'].isin(Distal_Promoter_filt_diff['Source']), 'Distal',
+                                       (np.where(Nodes['Node'].isin(Distal_Promoter_filt_diff['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_diff['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_diff['Target']), 'Promoter',
+                                          (np.where(Nodes['Node'].isin(Promoter_Gene_filt_diff['Target']), 'Gene', np.nan)))))))
+
+          Nodes_up['Node_type'] = np.where(Nodes_up['Node'].isin(Factor_Distal_up['Source']) | Nodes_up['Node'].isin(Factor_Promoter_up['Source']), 'Factor',
+                                      (np.where(Nodes_up['Node'].isin(Distal_Promoter_filt_up['Source']), 'Distal',
+                                         (np.where(Nodes_up['Node'].isin(Distal_Promoter_filt_up['Target']) | Nodes_up['Node'].isin(Promoter_Promoter_filt_up['Source']) | Nodes_up['Node'].isin(Promoter_Promoter_filt_up['Target']), 'Promoter',
+                                            (np.where(Nodes_up['Node'].isin(Promoter_Gene_filt_up['Target']), 'Gene', np.nan)))))))
+
+          Nodes_down['Node_type'] = np.where(Nodes_down['Node'].isin(Factor_Distal_down['Source']) | Nodes_down['Node'].isin(Factor_Promoter_down['Source']), 'Factor',
+                                      (np.where(Nodes_down['Node'].isin(Distal_Promoter_filt_down['Source']), 'Distal',
+                                         (np.where(Nodes_down['Node'].isin(Distal_Promoter_filt_down['Target']) | Nodes_down['Node'].isin(Promoter_Promoter_filt_down['Source']) | Nodes_down['Node'].isin(Promoter_Promoter_filt_down['Target']), 'Promoter',
+                                            (np.where(Nodes_down['Node'].isin(Promoter_Gene_filt_down['Target']), 'Gene', np.nan)))))))
+
+      else:
+          Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_diff['Source']) | Nodes['Node'].isin(Factor_Promoter_diff['Source']), 'Factor',
+                                  (np.where(Nodes['Node'].isin(Distal_Promoter_filt_diff['Source']), 'Distal',
+                                     (np.where(Nodes['Node'].isin(Distal_Promoter_filt_diff['Target'])  | Nodes['Node'].isin(Factor_Promoter_diff['Target']), 'Promoter',
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene_filt_diff['Target']), 'Gene', np.nan)))))))
+
+          Nodes_up['Node_type'] = np.where(Nodes_up['Node'].isin(Factor_Distal_up['Source']) | Nodes_up['Node'].isin(Factor_Promoter_up['Source']), 'Factor',
+                                      (np.where(Nodes_up['Node'].isin(Distal_Promoter_filt_up['Source']), 'Distal',
+                                         (np.where(Nodes_up['Node'].isin(Distal_Promoter_filt_up['Target'])  | Nodes_up['Node'].isin(Factor_Promoter_up['Target']), 'Promoter',
+                                            (np.where(Nodes_up['Node'].isin(Promoter_Gene_filt_up['Target']), 'Gene', np.nan)))))))
+
+          Nodes_down['Node_type'] = np.where(Nodes_down['Node'].isin(Factor_Distal_down['Source']) | Nodes_down['Node'].isin(Factor_Promoter_down['Source']), 'Factor',
+                                      (np.where(Nodes_down['Node'].isin(Distal_Promoter_filt_down['Source']), 'Distal',
+                                         (np.where(Nodes_down['Node'].isin(Distal_Promoter_filt_down['Target']) | Nodes_down['Node'].isin(Factor_Promoter_down['Target']), 'Promoter',
+                                            (np.where(Nodes_down['Node'].isin(Promoter_Gene_filt_down['Target']), 'Gene', np.nan)))))))
+
+
       Factor_stat_up = Factor_stat.loc[(Factor_stat['log2FC'] >= ${log2FC}) & (Factor_stat['padj'] <= ${padj}),:]
       Factor_stat_up = Factor_stat_up.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
-      nodes_peak_anno_up = nodes_up[nodes_up.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_up.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
-      nodes_gene_anno_up = nodes_up[nodes_up.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
-      nodes_anno_up = nodes_peak_anno_up.append(nodes_gene_anno_up)
-      nodes_up=nodes_up.merge(nodes_anno_up[['Node','padj', 'log2FC']], on='Node', how='left')
-      nodes_up.to_csv("Network_Nodes_${prefix}_interactions_up.txt", index=False, sep='\t' )
-
-      nodes_down = pd.DataFrame(pd.unique(Egdes_down[['Source', 'Target']].dropna().values.ravel('K')))
-      nodes_down.columns=['Node']
-      nodes_down['Node_type'] = np.where(nodes_down['Node'].isin(Factor_Distal_down['Source']) | nodes_down['Node'].isin(Factor_Promoter_down['Source']), 'Factor',
-                                  (np.where(nodes_down['Node'].isin(Distal_Promoter_filt_down['Source']), 'Distal',
-                                     (np.where(nodes_down['Node'].isin(Distal_Promoter_filt_down['Target']) | nodes_down['Node'].isin(Promoter_Promoter_filt_down['Source']) | nodes_down['Node'].isin(Promoter_Promoter_filt_down['Target']), 'Promoter',
-                                        (np.where(nodes_down['Node'].isin(Promoter_Gene_filt_down['Target']), 'Gene', np.nan)))))))
+      Nodes_peak_anno_up = Nodes_up[Nodes_up.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_up.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
+      Nodes_gene_anno_up = Nodes_up[Nodes_up.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
+      Nodes_anno_up = Nodes_peak_anno_up.append(Nodes_gene_anno_up)
+      Nodes_up=Nodes_up.merge(Nodes_anno_up[['Node','padj', 'log2FC']], on='Node', how='left')
+      Nodes_up.to_csv("Network_Nodes_${prefix}_interactions_up.txt", index=False, sep='\t' )
 
       Factor_stat_down = Factor_stat.loc[(Factor_stat['log2FC'] <= -${log2FC}) & (Factor_stat['padj'] <= ${padj}),:]
       Factor_stat_down = Factor_stat_down.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
-      nodes_peak_anno_down = nodes_down[nodes_down.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_down.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
-      nodes_gene_anno_down = nodes_down[nodes_down.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
-      nodes_anno_down = nodes_peak_anno_down.append(nodes_gene_anno_down)
-      nodes_down=nodes_down.merge(nodes_anno_down[['Node','padj', 'log2FC']], on='Node', how='left')
-      nodes_down.to_csv("Network_Nodes_${prefix}_interactions_down.txt", index=False, sep='\t' )
+      Nodes_peak_anno_down = Nodes_down[Nodes_down.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat_down.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
+      Nodes_gene_anno_down = Nodes_down[Nodes_down.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
+      Nodes_anno_down = Nodes_peak_anno_down.append(Nodes_gene_anno_down)
+      Nodes_down=Nodes_down.merge(Nodes_anno_down[['Node','padj', 'log2FC']], on='Node', how='left')
+      Nodes_down.to_csv("Network_Nodes_${prefix}_interactions_down.txt", index=False, sep='\t' )
 
-      #Adding node stats
-      Factor_stat = Factor_stat.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
-      nodes_peak_anno = nodes[nodes.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
+  #Adding node stats
+  Factor_stat = Factor_stat.sort_values('padj').drop_duplicates(subset=['Anchor'],keep='first').sort_index()
+  Nodes_peak_anno = Nodes[Nodes.Node_type.isin(('Distal', 'Promoter'))].merge(Factor_stat.loc[:,['Anchor', 'padj', 'log2FC']], how='left', right_on='Anchor', left_on='Node')
 
-      skip_expression = "${skip_expression}"
-      if skip_expression == "false":
-        nodes_gene_anno = nodes[nodes.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
-        nodes_anno = nodes_peak_anno.append(nodes_gene_anno)
-      else:
-        nodes_anno = nodes_peak_anno
+  skip_expression = "${skip_expression}"
+  if skip_expression == "false":
+    Nodes_gene_anno = Nodes[Nodes.Node_type =='Gene'].merge(expression.loc[:,['padj', 'log2FC']], how='left', right_index=True, left_on='Node')
+    Nodes_anno = Nodes_peak_anno.append(Nodes_gene_anno)
+  else:
+    Nodes_anno = Nodes_peak_anno
 
-      nodes=nodes.merge(nodes_anno[['Node','padj', 'log2FC']], on='Node', how='left')
-      nodes.to_csv("Network_Nodes_${prefix}_interactions.txt", index=False, sep='\t' )
+  Nodes=Nodes.merge(Nodes_anno[['Node','padj', 'log2FC']], on='Node', how='left')
+  Nodes.to_csv("Network_Nodes_${prefix}_interactions.txt", index=False, sep='\t' )
   """
 }
 
-if ({params.network | params.complete} && params.mode !="differential" ){
+if ({params.network | params.complete} && params.network_mode !="differential" ){
   ch_nodes_up = file("No_nodes_up")
   ch_nodes_down = file("No_nodes_down")
-  edges_up = file("No_edges_up")
-  edges_down = file("No_edges_down")
+  ch_edges_up = file("No_edges_up")
+  ch_edges_down = file("No_edges_down")
 
 }
 
 /*
- * 11. NETWORK VISULAIZATIOn
+ * 11. NETWORK VISULAIZATION
  */
 process NETWORK_VISUALIZATION {
   publishDir "${params.outdir}/tmp/process11", mode: 'copy', enabled: params.save_tmp
-  publishDir "${params.outdir}/Figures/Network", mode: 'copy'
+  publishDir "${params.outdir}/Network/Visualization", mode: 'copy'
 
   when:
   params.network | params.complete
@@ -1392,6 +1529,7 @@ process NETWORK_VISUALIZATION {
   val expression_log2FC from Channel.value(params.expression_log2FC)
   val expression_padj from Channel.value(params.expression_padj)
   val mode from Channel.value(params.mode)
+  val network_mode from Channel.value(params.network_mode)
   val use_peakscore from Channel.value(params.use_peakscore)
 
   path nodes_up from ch_nodes_up
@@ -1418,8 +1556,16 @@ process NETWORK_VISUALIZATION {
   require(viridisLite)
 
   #Loading and organizing data
-  nodes <- read.table("${nodes}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
-  edges <- read.table("${edges}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
+  mode="${mode}"
+  network_mode="${network_mode}"
+
+  if (mode=="differential"){
+    nodes <- read.table("${nodes}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
+    edges <- read.table("${edges}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
+  } else{
+    nodes <- read.table("${nodes}", header=TRUE, sep="\t", col.names=c("id", "type"))
+    edges <- read.table("${edges}", header=TRUE, sep="\t", col.names=c("source", "target","score", "type"))
+  }
   edges[,"interaction"] <- "interacts"
   edges[,"name"] <- paste(edges\$source, "(interacts)", edges\$target, sep=" ")
   createNetworkFromDataFrames(nodes,edges, title="Network", collection="Networks" )
@@ -1459,13 +1605,12 @@ process NETWORK_VISUALIZATION {
 
 
   #For differntial mode:color by log2FC of peaks and GENES
-  mode="${mode}"
   if (mode=="differential"){
     map2color<-function(x,pal,limits=NULL){
       if(is.null(limits)) limits=range(x)
       pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
     }
-    pal_up <- viridisLite::rocket(100, begin = 0.4, end = 0.25, direction = 1)
+    pal_up <- viridisLite::rocket(100, begin = 0.5, end = 0.25, direction = 1)
     pal_down <- viridisLite::mako(100, begin = 0.6, end = 0.35, direction = -1)
     nodes_up_peak <- nodes[nodes\$log2FC >=${log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${padj} & !is.na(nodes\$padj) & nodes\$type %in% c("Distal", "Promoter"),]
     nodes_down_peak <- nodes[nodes\$log2FC <= -${log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${padj} & !is.na(nodes\$padj) & nodes\$type %in% c("Distal", "Promoter"),]
@@ -1473,17 +1618,23 @@ process NETWORK_VISUALIZATION {
     nodes_down_gene <- nodes[nodes\$log2FC <= -${expression_log2FC} & !is.na(nodes\$log2FC) & nodes\$padj <=${expression_padj} & !is.na(nodes\$padj) & nodes\$type == "Gene",]
     nodes_up <- rbind(nodes_up_peak, nodes_up_gene)
     nodes_down <- rbind(nodes_down_peak, nodes_down_gene)
-    nodes_up[,"color"] <- map2color(log(nodes_up[,"log2FC"]),pal_up)
-    nodes_down[,"color"] <- map2color(log(abs(nodes_down[,"log2FC"])),pal_down)
+    if (nrow(nodes_up)>0){
+      nodes_up[,"color"] <- map2color(log(nodes_up[,"log2FC"]),pal_up)
+    }
+    if (nrow(nodes_down)>0){
+      nodes_down[,"color"] <- map2color(log(abs(nodes_down[,"log2FC"])),pal_down)
+    }
     nodes_diff <- rbind(nodes_up, nodes_down)
-    nodes_diff[,"color"] <- gsub("FF\$", "", nodes_diff[,"color"])
-    setNodePropertyBypass(nodes_diff\$id,nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+    if (ncol(nodes_diff)==5){
+      nodes_diff[,"color"] <- gsub("FF\$", "", nodes_diff[,"color"])
+      setNodePropertyBypass(nodes_diff\$id,nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+    }
   }
   toggleGraphicsDetails()
   exportImage("Network.pdf", 'PDF')
   exportNetwork("Network.xgmml", type= 'xGMML')
 
-  if (mode=="differential"){
+  if (mode=="differential" & network_mode=="differential"){
   #Up
     up_nodes <- read.table("${nodes_up}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
     up_edges <- read.table("${edges_up}", header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))
@@ -1512,15 +1663,20 @@ process NETWORK_VISUALIZATION {
     up_nodes_down_gene <- up_nodes[up_nodes\$log2FC <= -${expression_log2FC} & !is.na(up_nodes\$log2FC) & up_nodes\$padj <=${expression_padj} & !is.na(up_nodes\$padj) & up_nodes\$type == "Gene",]
     up_nodes_up <- rbind(up_nodes_up_peak, up_nodes_up_gene)
     up_nodes_down <- rbind(up_nodes_down_peak, up_nodes_down_gene)
-    up_nodes_up[,"color"] <- map2color(log(up_nodes_up[,"log2FC"]),pal_up)
-    up_nodes_down[,"color"] <- map2color(log(abs(up_nodes_down[,"log2FC"])),pal_down)
+    if (nrow(up_nodes_up)>0){
+      up_nodes_up[,"color"] <- map2color(log(up_nodes_up[,"log2FC"]),pal_up)
+    }
+    if (nrow(up_nodes_down)>0){
+      up_nodes_down[,"color"] <- map2color(log(abs(up_nodes_down[,"log2FC"])),pal_down)
+    }
     up_nodes_diff <- rbind(up_nodes_up, up_nodes_down)
-    up_nodes_diff[,"color"] <- gsub("FF\$", "", up_nodes_diff[,"color"])
-    setNodePropertyBypass(up_nodes_diff\$id,up_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
-
+    if (ncol(up_nodes_diff)==5){
+      up_nodes_diff[,"color"] <- gsub("FF\$", "", up_nodes_diff[,"color"])
+      setNodePropertyBypass(up_nodes_diff\$id,up_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+    }
   toggleGraphicsDetails()
   exportImage("Network_up.pdf", 'PDF')
-  exportNetwork("Network.xgmml", type= 'xGMML')
+  exportNetwork("Network_up.xgmml", type= 'xGMML')
 
   #Down
     down_nodes <- read.table("${nodes_down}", header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
@@ -1550,12 +1706,17 @@ process NETWORK_VISUALIZATION {
     down_nodes_down_gene <- down_nodes[down_nodes\$log2FC <= -${expression_log2FC} & !is.na(down_nodes\$log2FC) & down_nodes\$padj <=${expression_padj} & !is.na(down_nodes\$padj) & down_nodes\$type == "Gene",]
     down_nodes_up <- rbind(down_nodes_up_peak, down_nodes_up_gene)
     down_nodes_down <- rbind(down_nodes_down_peak, down_nodes_down_gene)
-    down_nodes_up[,"color"] <- map2color(log(down_nodes_up[,"log2FC"]),pal_up)
-    down_nodes_down[,"color"] <- map2color(log(abs(down_nodes_down[,"log2FC"])),pal_down)
+    if (nrow(down_nodes_up)>0){
+      down_nodes_up[,"color"] <- map2color(log(down_nodes_up[,"log2FC"]),pal_up)
+    }
+    if (nrow(down_nodes_down)>0){
+      down_nodes_down[,"color"] <- map2color(log(abs(down_nodes_down[,"log2FC"])),pal_down)
+    }
     down_nodes_diff <- rbind(down_nodes_up, down_nodes_down)
-    down_nodes_diff[,"color"] <- gsub("FF\$", "", down_nodes_diff[,"color"])
-    setNodePropertyBypass(down_nodes_diff\$id,down_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
-
+    if (ncol(down_nodes_diff)==5){
+      down_nodes_diff[,"color"] <- gsub("FF\$", "", down_nodes_diff[,"color"])
+      setNodePropertyBypass(down_nodes_diff\$id,down_nodes_diff\$color,'NODE_FILL_COLOR',bypass = TRUE)
+    }
   toggleGraphicsDetails()
   exportImage("Network_down.pdf", 'PDF')
   exportNetwork("Network_down.xgmml", type= 'xGMML')
@@ -1573,7 +1734,7 @@ if ({params.upset_plot | params.circos_plot | params.complete} && !params.filter
  */
 process UPSET_PLOT {
   publishDir "${params.outdir}/tmp/process12", mode: 'copy', enabled: params.save_tmp
-  publishDir "${params.outdir}/Figures/Upset", mode: 'copy', pattern: 'Upset_plot_*.pdf', enabled: params.upset_plot | params.complete
+  publishDir "${params.outdir}/Co_occupancy/Upset", mode: 'copy', pattern: 'Upset_plot_*.pdf', enabled: params.upset_plot | params.complete
 
   when:
   params.upset_plot | params.circos_plot | params.complete
@@ -1596,7 +1757,7 @@ process UPSET_PLOT {
   path "Upset_plot_Distal_genelist.pdf" optional true into ch_upset_plot_distal_genes
 
   //For circos plot
-  path "Circos_factors_${prefix}_interactions.txt" optional true into ch_circos_f
+  path "Circos_peaks_${prefix}_interactions.txt" optional true into ch_circos_f
   path "Circos_genes_${prefix}_interactions.txt" optional true into ch_circos_g
 
 
@@ -1673,7 +1834,7 @@ process UPSET_PLOT {
     circos_f.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
     circos_f.fillna(False,inplace=True)
     circos_f = circos_f.groupby(list(circos_f.columns)).size().to_frame('size').reset_index()
-    circos_f.to_csv("Circos_fenes_${prefix}_interactions.txt", index=False, sep='\t' )
+    circos_f.to_csv("Circos_peaks_${prefix}_interactions.txt", index=False, sep='\t' )
 
     filter_genes = "${filter_genes}"
     if filter_genes == 'true':
@@ -1701,7 +1862,7 @@ if ({params.circos_plot | params.complete} && !params.filter_genes ){
  */
 process CIRCOS_PLOT {
   publishDir "${params.outdir}/tmp/process13", mode: 'copy', enabled: params.save_tmp
-  publishDir "${params.outdir}/Figures/Circos", mode: 'copy', enabled: params.circos_plot | params.complete
+  publishDir "${params.outdir}/Co_occupancy/Circos", mode: 'copy', enabled: params.circos_plot | params.complete
 
   when:
   params.circos_plot | params.complete
@@ -1747,7 +1908,7 @@ process CIRCOS_PLOT {
     factor_anno[[f]] <- list(track.height = 0.05, bg.border = "black", bg.col=circos_data_all_pd[,f])
   }
   x=1.82
-  pdf("Circos_plot_factors.pdf")
+  pdf("Circos_plot_peaks.pdf")
   circos.par(start.degree = 0)
   chordDiagram(circos_data_all_2, big.gap = 25, directional = 1, grid.col = cols_all, transparency = 0.5,annotationTrack = "grid", grid.border="black", annotationTrackHeight=0.05,
       preAllocateTracks = factor_anno, xmax=0.1)
@@ -1806,7 +1967,7 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
   params.mode == 'differnetial' && !params.skip_expression
 
   input:
-  set val(peak_name), file(annotated_peaks) from ch_peak_PLACseq_annotated_for_differntial_expression
+  set val(sample), file(annotated_peaks) from ch_peak_PLACseq_annotated_for_differntial_expression
   path expression from ch_expression_2
   val prefix from Channel.value(params.prefix)
   val log2FC_column from Channel.value(params.log2FC_column)
@@ -1820,11 +1981,11 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
 
 
   output:
-  path "${peak_name}_${prefix}_annotated_differential_expression.txt" into ch_peak_PLACseq_annotated_differntial_expression
-  path "${peak_name}_${prefix}_annotated_differential_expression_proximal_activating.txt" into ch_peak_PLACseq_annotated_differntial_expression_proximal_activating
-  path "${peak_name}_${prefix}_annotated_differential_expression_proximal_repressive.txt" into ch_peak_PLACseq_annotated_differntial_expression_proximal_repressive
-  path "${peak_name}_${prefix}_annotated_differential_expression_distal_activating.txt" into ch_peak_PLACseq_annotated_differntial_expression_distal_activating
-  path "${peak_name}_${prefix}_annotated_differential_expression_distal_repressive.txt" into ch_peak_PLACseq_annotated_differntial_expression_distal_repressive
+  path "${sample}_${prefix}_annotated_differential_expression.txt" into ch_peak_PLACseq_annotated_differntial_expression
+  path "${sample}_${prefix}_annotated_differential_expression_proximal_activating.txt" into ch_peak_PLACseq_annotated_differntial_expression_proximal_activating
+  path "${sample}_${prefix}_annotated_differential_expression_proximal_repressive.txt" into ch_peak_PLACseq_annotated_differntial_expression_proximal_repressive
+  path "${sample}_${prefix}_annotated_differential_expression_distal_activating.txt" into ch_peak_PLACseq_annotated_differntial_expression_distal_activating
+  path "${sample}_${prefix}_annotated_differential_expression_distal_repressive.txt" into ch_peak_PLACseq_annotated_differntial_expression_distal_repressive
   script:
   """
   #!/usr/bin/env python
@@ -1851,10 +2012,10 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
   annotated_peaks_expression['Activating_or_repressive'] = np.where((annotated_peaks_expression.index.isin(annotated_peaks_expression_proximal_activating.index)) | (annotated_peaks_expression.index.isin(annotated_peaks_expression_distal_activating.index)), 'Activating', np.where((annotated_peaks_expression.index.isin(annotated_peaks_expression_proximal_repressive.index)) | (annotated_peaks_expression.index.isin(annotated_peaks_expression_distal_repressive.index)), 'Repressive', ''))
 
   #Save files
-  annotated_peaks_expression.to_csv("${peak_name}_${prefix}_annotated_differential_expression.txt", index=True, sep='\t' )
-  annotated_peaks_expression_proximal_activating.to_csv("${peak_name}_${prefix}_annotated_differential_expression_proximal_activating.txt", index=True, sep='\t' )
-  annotated_peaks_expression_proximal_repressive.to_csv("${peak_name}_${prefix}_annotated_differential_expression_proximal_repressive.txt", index=True, sep='\t' )
-  annotated_peaks_expression_distal_activating.to_csv("${peak_name}_${prefix}_annotated_differential_expression_distal_activating.txt", index=True, sep='\t' )
-  annotated_peaks_expression_distal_repressive.to_csv("${peak_name}_${prefix}_annotated_differential_expression_distal_repressive.txt", index=True, sep='\t' )
+  annotated_peaks_expression.to_csv("${sample}_${prefix}_annotated_differential_expression.txt", index=True, sep='\t' )
+  annotated_peaks_expression_proximal_activating.to_csv("${sample}_${prefix}_annotated_differential_expression_proximal_activating.txt", index=True, sep='\t' )
+  annotated_peaks_expression_proximal_repressive.to_csv("${sample}_${prefix}_annotated_differential_expression_proximal_repressive.txt", index=True, sep='\t' )
+  annotated_peaks_expression_distal_activating.to_csv("${sample}_${prefix}_annotated_differential_expression_distal_activating.txt", index=True, sep='\t' )
+  annotated_peaks_expression_distal_repressive.to_csv("${sample}_${prefix}_annotated_differential_expression_distal_repressive.txt", index=True, sep='\t' )
   """
 }
