@@ -1,12 +1,12 @@
-# PLACseq_anno
-**Nextflow pipeline for PLAC-seq based peak annotation**
+# LIANA
+**Nextflow pipeline for Peak annotation based on long-range chromatin interactions**
 
 ## Introduction
 Gene regulation is a complex interplay between epigenetic factors and transcriptional regulators. In order to gain mechanistic instights into gene regulation, the process of assigning transcription factor occupancy and epigenetic features to genes is an important step in the analysis workflow of many different types of NGS-data (e.g. ChIP-seq/Cut&Run/ATAC-seq). Despite increasing support for the importance of long-range chromatin interaction in gene regulation, the current standard in peak annotation is based on annotating the peak to the closest gene, known as proximity annotation. Improvements have been made to the standard proximity based annotation in order to facilitate annotation of more distal peaks. However, cell type specific interaction as well as interactions spanning hundreds of kbps with other TSS located between the promoter and its distal regulatory regions, are still unlikely to be annotated correctly. There are a numer of methods available that capture long-range chromatin interaction (e.g. Hi-C/PLAC-seq), and to take advantage of these interactions for peak annotation Placseq_anno was developed.
 
-Placseq_anno is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for Placseq_anno, is to perform peak-centerd annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this Placseq_anno provides the option to perform interaction-centers annotation. Placseq_anno can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape. 
+LIANA (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for LIANA, is to perform peak-centerd annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this Placseq_anno provides the option to perform interaction-centers annotation. LIANA can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape. 
 
-![Peakock](Peakock.png)
+![LIANA](LIANA.png)
 
 ### Annotation modes
 To fashiliate anootation of differnt types of input data, the pipeline can be run in three differnt modes: basic, multiple and differential:
