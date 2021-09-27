@@ -1964,7 +1964,7 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
   publishDir "${params.outdir}/Differential_expression_associated_peaks", mode: 'copy'
 
   when:
-  params.mode == 'differnetial' && !params.skip_expression
+  params.mode == 'differenetial' && !params.skip_expression
 
   input:
   set val(sample), file(annotated_peaks) from ch_peak_PLACseq_annotated_for_differntial_expression
