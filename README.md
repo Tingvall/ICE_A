@@ -79,7 +79,7 @@ nextflow run liana.nf --help
 | Input | Description |
 | --- | --- |
 | `--peaks` | Path to txt file specifying the name of the peak files(s) in the first column and the path to the file(s) in the second column (For example see: [peaks.txt](example_files/peaks.txt)). The recomended input format for the peak files are 6 column bed files (more columns are allowed but will be ignored): chr, start, end, peakID, peak score, strand. It is also possible to use a 3 column bed but then peakIDs are automaically generated and peak score and strand information are not available. |
-| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIC`](https://github.com/ay-lab/fithic). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `--skip_anno` is used. |
+| `--bed2D` | Path to chromain interaction from PLAC-seq (or any similar method that captures long-range interactions) in 2D-bed format. Currently the pipeline is designed for 2D-bed files created by [`FitHIChIP`](https://github.com/ay-lab/FitHiChIP). This input can be replcaed by `bed2D_anno` if an alredy annotated 2D-bed file is available and the arguement `--skip_anno` is used. |
 | `--genome` | Specification of genome for annotation (e.g. mm10). Currently the annotation is performed by [`HOMER`](http://homer.ucsd.edu/homer/), visit documentation for details and available genomes: http://homer.ucsd.edu/homer. |
 
 #### Optional input
