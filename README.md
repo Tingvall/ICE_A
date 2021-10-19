@@ -1,5 +1,5 @@
-# LIANA:Long-range chromatin Interaction for ANnotation of peAks
-**A nextflow-based pipeline to faciltate the use of chromatin interaction for peak annotation **
+# LIANA: Long-range chromatin Interaction for ANnotation of peAks
+**A nextflow-based pipeline to faciltate the use of chromatin interaction for peak annotation**
 
 ## Introduction
 More and more evidence points towards the importance of chromatin interactions in gene regulation. The amount of available interaction data is steadily increasing and with that the potential to, in cell type specific manner, assigning transcription factor occupancy and epigenetic features to genes (i.e. peak annotation). Despite this, the standard method for linking genomic regions to genes is still proximity annotation. Improvements have been made to the standard proximity based annotation to facilitate annotation of more distal peaks (e.g. GREAT2). However, cell type specific interactions as well as interactions spanning several hundred kbp with other genes located between the promoter and its distal regulatory regions, are still likely to be missed. One reason for the limited use of chromatin interactions in peak annotation could be that it is time consuming and require a certain skill set. LIANA aim to change this by providing an easy-to-use tool that, in a single command, can perform interaction-based annotation of multiple peak files.
