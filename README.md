@@ -1,5 +1,5 @@
 # LIANA
-**Nextflow pipeline for Peak annotation based on long-range chromatin interactions**
+**Long-range chromatin Interaction for ANnotation of peAks**
 
 ## Introduction
 Gene regulation is a complex interplay between epigenetic factors and transcriptional regulators. In order to gain mechanistic instights into gene regulation, the process of assigning transcription factor occupancy and epigenetic features to genes is an important step in the analysis workflow of many different types of NGS-data (e.g. ChIP-seq/Cut&Run/ATAC-seq). Despite increasing support for the importance of long-range chromatin interaction in gene regulation, the current standard in peak annotation is based on annotating the peak to the closest gene, known as proximity annotation. Improvements have been made to the standard proximity based annotation in order to facilitate annotation of more distal peaks. However, cell type specific interaction as well as interactions spanning hundreds of kbps with other TSS located between the promoter and its distal regulatory regions, are still unlikely to be annotated correctly. There are a numer of methods available that capture long-range chromatin interaction (e.g. Hi-C/PLAC-seq), and to take advantage of these interactions for peak annotation Placseq_anno was developed.
@@ -12,7 +12,7 @@ LIANA (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow 
 To fashiliate anootation of differnt types of input data, the pipeline can be run in three differnt modes: basic, multiple and differential:
 
 #### Basic mode
-The basic annotation mode performs interaction-based annotation of a single peak file. Examples include annoation of ATAC-seq peaks or a single factor from ChIP-seq/Cut&Run. The main output is a text file that for each peak in the input bed file, provides PLAC_seq based annotation. A genelist, contianing all genes that peaks are annoated is also provided. In addition to the peak-cenetered annotation, it is also possible to perform interaction-centered annotation and visualize the peak annotation in network wormat using Cytoscape.
+The basic annotation mode performs interaction-based annotation of a single peak file. Examples include annoation of ATAC-seq peaks or a single factor from ChIP-seq/Cut&Run. The main output is a text file that for each peak in the input bed file, provides interaction-based annotation. A genelist, contianing all genes that peaks are annoated is also provided. In addition to the peak-cenetered annotation, it is also possible to perform interaction-centered annotation and visualize the peak annotation in network wormat using Cytoscape.
 
 #### Multiple mode
 In many cases, identification of co-binding between multiple transcriptional factors could be of interest. For these cases multiple mode is suitable. Multiple mode allow you to simmultanously annotating multiple peak files separatly (identical to basic mode). In addition, it provides the option to identify and visualize co-occupancy between the transcriptional regulators in the form of upset plots and interaction-based circos plots. 
@@ -43,9 +43,9 @@ The pipeline consist of the following processes:
 ## Installation
 
 ####  Create conda environment:
-Download the plac_anno_env.yml file and create a conda environemnt that contain all packages neccisary to run the pieline:
+Download the liana_env.yml file and create a conda environemnt that contain all packages neccisary to run the pieline:
 ```bash
-conda create -f plac_anno_env.yaml
+conda create -f liana_env.yaml
 ```
 Activate conda environment:
 ```bash
@@ -70,7 +70,7 @@ Cytoscape &
 ####  Launce pipeline:
 Dowload the pipeline (including main.nf & nextflow.config). To avoid having specify the path to the config file, make sure to place the two files in the same directory. Try to launce the pipeline:
 ```bash
-nextflow run PLAC_anno_2.nf --help
+nextflow run liana.nf --help
 ```
 
 ## Inputs
