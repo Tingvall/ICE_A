@@ -97,7 +97,7 @@ nextflow run liana.nf --help
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run PLAC_anno_2.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
+nextflow run liana.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
 ```
 The default mode is basic, to run the pipeline in another mode specify it with the argumnet `mode`.
 
