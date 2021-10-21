@@ -19,6 +19,6 @@ jobs:
         run: wget -qO- https://get.nextflow.io | bash
 
       - name: Verify nextflow is installed
-        run: nextflow help
+        run: ./nextflow help
 
 
