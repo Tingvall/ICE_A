@@ -31,7 +31,7 @@ jobs:
       - name: Configure homer
         run: perl $(which conda)/envs/liana_envs/share/homer*/configureHomer.pl -install mm10
 
-      - Download promoter annotations
+      - name: Download promoter annotations
         run: perl $(which conda)/envs/liana_env/share/homer*/configureHomer.pl -install human-p
 
       - name: Verify pipeline works
