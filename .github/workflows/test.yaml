@@ -23,7 +23,7 @@ jobs:
         run: ./nextflow help
 
       - name: Create Conda environment
-        run: conda create -f liana_env.yml
+        run: conda env create -f liana_env.yml
 
       - name: Activate Conda environment
         run: conda activate liana_env
