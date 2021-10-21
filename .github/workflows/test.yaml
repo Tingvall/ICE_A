@@ -24,4 +24,18 @@ jobs:
       - name: Verify Nextflow is installed
         run: ./nextflow help
 
+      - name: Create Conda environment
+        run: conda create -f liana_env.yaml
+
+      - name: Activate Conda environment
+        run: conda activate liana_env
+
+      - name: Configure homer
+        run: perl $(which conda)/envs/plac_anno_env/share/homer*/configureHomer.pl -install mm10
+
+      - Download promoter annotations
+        run: perl $(which conda)/envs/plac_anno_env/share/homer*/configureHomer.pl -install human-p
+
+      - name: Launch pipeline
+        run: nextflow run liana.nf --help
 
