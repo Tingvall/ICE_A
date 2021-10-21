@@ -8,19 +8,20 @@ jobs:
   test:
 
     runs-on: ubuntu-latest
+
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Nextflow
-        run: wget -qO- https://get.nextflow.io | bash
+#      - name: Install Nextflow
+#        run: wget -qO- https://get.nextflow.io | bash
 
-      - name: Nextflow is executable
-        run: chmod +x nextflow
+#      - name: Nextflow is executable
+#        run: chmod +x nextflow
 
-      - name: Verify Nextflow is installed
-        run: ./nextflow help
+#      - name: Verify Nextflow is installed
+#        run: ./nextflow help
 
       - name: Create Conda environment
         run: conda env create -f liana_env.yml
