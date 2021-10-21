@@ -15,10 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install nextflow
+      - name: Install Nextflow
         run: wget -qO- https://get.nextflow.io | bash
 
-      - name: Verify nextflow is installed
+      - name: Nextflow is executable
+        run: chmod +x nextflow
+
+      - name: Verify Nextflow is installed
         run: ./nextflow help
 
 
