@@ -45,7 +45,7 @@ The pipeline consist of the following processes:
 ####  Create conda environment:
 Download the liana_env.yml file and create a conda environment that contain all packages required to run the pieline:
 ```bash
-conda create -f liana_env.yaml
+conda create env -f liana_env.yaml
 ```
 Activate conda environment:
 ```bash
@@ -54,11 +54,11 @@ conda activate liana_env
 ####  Configure HOMER:
 Before you use the pipeline, HOMER must be configured correctly. For each genome you intend to use, download the reference fasta file by using the following command (for available genomes visit: http://homer.ucsd.edu/homer):
 ```bash
-perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
+perl <path to conda>/envs/liana_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
 ```
 Next, download the promoter annotations for the organism you are working with (for available organisms visit: http://homer.ucsd.edu/homer):
 ```bash
-perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
+perl <path to conda>/envs/liana_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
 ```
 
 ####  Launch Cytoscape:
