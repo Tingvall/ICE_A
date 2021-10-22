@@ -45,7 +45,7 @@ The pipeline consist of the following processes:
 ####  Create conda environment:
 Download the liana_env.yml file and create a conda environment that contain all packages required to run the pieline:
 ```bash
-conda create env -f liana_env.yaml
+conda env create -f liana_env.yml
 ```
 Activate conda environment:
 ```bash
