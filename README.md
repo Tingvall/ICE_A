@@ -114,7 +114,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
 | `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). 
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
-| `--complete` | If set to true (default), all available processes for the selected mode and provided inputs are run.|
+| `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
 | `--help` | Help message is shown. |
 
