@@ -45,7 +45,7 @@ The pipeline consist of the following processes:
 ####  Create conda environment:
 Download the liana_env.yml file and create a conda environment that contain all packages required to run the pieline:
 ```bash
-conda create -f liana_env.yaml
+conda env create -f liana_env.yml
 ```
 Activate conda environment:
 ```bash
@@ -54,11 +54,11 @@ conda activate liana_env
 ####  Configure HOMER:
 Before you use the pipeline, HOMER must be configured correctly. For each genome you intend to use, download the reference fasta file by using the following command (for available genomes visit: http://homer.ucsd.edu/homer):
 ```bash
-perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
+perl <path to conda>/envs/liana_env/share/homer*/configureHomer.pl -install <genome (e.g. mm10, hg19)>
 ```
 Next, download the promoter annotations for the organism you are working with (for available organisms visit: http://homer.ucsd.edu/homer):
 ```bash
-perl <path to conda>/envs/plac_anno_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
+perl <path to conda>/envs/liana_env/share/homer*/configureHomer.pl -install <organism-p (e.g. mouse-p, human-p)>
 ```
 
 ####  Launch Cytoscape:
@@ -114,7 +114,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
 | `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). 
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
-| `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
+| `--complete` | If set to true (default), all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
 | `--help` | Help message is shown. |
 
