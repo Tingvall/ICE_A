@@ -19,6 +19,9 @@ def helpMessage() {
     --mode                          Define which mode to run the pipeline in. The options are basic (default), multiple or differntial.
     --outdir                        Specifies the output driectory (default: ./results).
     --prefix                        Prefix used for interactions (default: PLACseq).
+    --promoter_distance             Distance +/- TSS considered a promoter (default: 2500).
+    --binsize                       Binsize used for interactions (default: 5000).
+    --interaction_threshold          Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000).
     --proximity_unannotated         Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false).
     --multiple_anno                 Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowset qvalue). Default is: concentrate.
     --skip_anno                     Skip the HOMER annotation of the interactions (requires specification of path to annotated 2D-bed by using the argumnet --bed2D_anno).
@@ -38,14 +41,14 @@ def helpMessage() {
     --peak_differntial [file]       Path to textfile that contain log2FC and adjusted p-value from differntial analyis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the aruguments --log2FC_column and --padj column.
     --log2FC_column 	              Specifies which column in --peak_differential that contain the log2FC values. Deafult: 3 (standard DESEq2 output).
     --padj_column 	                Specifies which column in --peak_differential that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output).
-    --log2FC 	                      Log2FC treshold for differntial peaks. Default: 1.5
-    --padj 	                        Adjusted p-value treshold for differntial peaks. Default: 0.05
+    --log2FC 	                      Log2FC threshold for differntial peaks. Default: 1.5
+    --padj 	                        Adjusted p-value threshold for differntial peaks. Default: 0.05
     --expression [file]
     --skip_expression 	            Use this argumnet if no --expression file is provided.
     --expression_log2FC_column 	    Specifies which column in --expression that contain the log2FC values. Deafult: 3 (standard DESEq2 output).
     --expression_padj_column 	      Specifies which column in --expression that contain the adjusted p-value values. Deafult: 9 (standard DESEq2 output).
-    --expression_log2FC 	          Set the log2FC treshold for differntial genes. Default: 1.5
-    --expression_padj 	            Set the adjusted p-value treshold for differntial genes. Default: 0.05
+    --expression_log2FC 	          Set the log2FC threshold for differntial genes. Default: 1.5
+    --expression_padj 	            Set the adjusted p-value threshold for differntial genes. Default: 0.05
     --expression [file]             Only used in differntial mode when `--skip_expression` is false (default). Specifies path to file that contain information about differntial expression between the two conditions. The first column must contain gene symbol. The column for log2FC/padj can be specified using `--expression_log2FC_column` and `--expression_padj_column`respectivly, default: 3 & 9 (stadanrds DESeq2 format). Note: make sure that you use the same direction for the comparison in `--peak_differential` and `--expression`.
 
   """.stripIndent()
@@ -251,6 +254,7 @@ process JOIN_ANNOTATED_INTERACTIONS {
     path anchor2_anno from ch_anchor2_anno
     path bed2D_index from ch_bed2D_index
     val prefix from Channel.value(params.prefix)
+    val binsize from Channel.value(params.binsize)
 
     output:
     path "${prefix}_HOMER_annotated_interactions.txt" into ch_bed2D_anno
@@ -276,8 +280,8 @@ process JOIN_ANNOTATED_INTERACTIONS {
        'Nearest_Ensembl_2', 'Gene_Name_2', 'Gene_Alias_2', 'Gene_Description_2',
        'Gene_Type_2']
 
-    anchor_merge['TSS_1'] = np.where(abs(anchor_merge['Distance_to_TSS_1']) <= 2500, 1, 0)
-    anchor_merge['TSS_2'] = np.where(abs(anchor_merge['Distance_to_TSS_2']) <= 2500, 1, 0)
+    anchor_merge['TSS_1'] = np.where(abs(anchor_merge['Distance_to_TSS_1']) <= ${binsize}/2, 1, 0) #Defining anchor point 1 as promoter bins (TSS_1=1) if the bin contain a TSS (distance to closest TSS < half the binsize)
+    anchor_merge['TSS_2'] = np.where(abs(anchor_merge['Distance_to_TSS_2']) <= ${binsize}/2, 1, 0) #Defining anchor point 2 as promoter bins (TSS_2=1) if the bin contain a TSS (distance to closest TSS < half the binsize)
     anchor_merge.to_csv("${prefix}_HOMER_annotated_interactions.txt", index=True, sep='\t' )
     """
 }
@@ -353,6 +357,12 @@ if (params.skip_anno) {
     """
   }
 
+if (!params.interaction_threshold){
+  ch_interaction_threshold = Channel.value(2*params.binsize)
+}
+else{
+  ch_interaction_threshold = Channel.value(params.interaction_threshold)
+}
   /*
    * 7. PEAK ANNOTATION: PEAKS ANNOTATED BY PROXIMITY OR PLAC-SEQ BASED ANNOTATION
    */
@@ -366,6 +376,8 @@ if (params.skip_anno) {
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
     val mode from Channel.value(params.mode)
+    val promoter_distance from Channel.value(params.promoter_distance)
+    val interaction_threshold from ch_interaction_threshold
 
     //Differntial mode specific
     path peak_differential from ch_peak_differential_1
@@ -415,7 +427,7 @@ if (params.skip_anno) {
     Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
 
     # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
-    Peak_overlap_merge['Annotation'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 2500, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 10000, 'Proximal_anno', 'Plac_anno')))
+    Peak_overlap_merge['Annotation'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= ${promoter_distance}, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= ${interaction_threshold}, 'Proximal_anno', 'Plac_anno')))
 
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
     Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Promoter','Proximal_anno']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Annotation']].drop_duplicates()
