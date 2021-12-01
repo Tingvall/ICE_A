@@ -30,7 +30,7 @@ The pipeline consist of the following processes:
 4. **ANNOTATE_PEAKS** - Annotation of provided peak file(s) using [`HOMER`](http://homer.ucsd.edu/homer/)
 5. **SPLIT_ANNOTATED_INTERACTIONS** - Annotated 2D-bed file split for peak intersection
 6. **PEAK_INTERACTION_INTERSECT** - Peak-centered intersection of provided peak file(s) with genomic interactions using [`bedtools`](https://bedtools.readthedocs.io/en/latest/index.html)
-7. **PEAK_INTERACTION_BASED_ANNOTATION** - Performing PLAC-seq based annotation of provided peak file(s)
+7. **PEAK_INTERACTION_BASED_ANNOTATION** - Performing interaction-based annotation of provided peak file(s)
 8. **INTERACTION_PEAK_INTERSECT [Optional]** - Interaction-centered intersection of peak file(s) with genomic interactions using [`bedtools`](https://bedtools.readthedocs.io/en/latest/index.html)
 9. **ANNOTATE_INTERACTION_WITH_PEAKS [Optional]** - Interaction based annotation of 2D-bed file with provided peak files(s)
 10. **NETWORK [Optional]** - Creating files for network visualization of peak annotation
@@ -108,7 +108,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--outdir` | Specifies the output directory (default: ./results). |
 |`--promoter_distance` | Specifies the distance +/- TSS considered as a promoter (default: 2500). |
 |`--binsize` | Bin size used for interaction anchor points (default: 5000). |
-|`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000). |
+|`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
 | `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowest qvalue). Default is: concentrate.|

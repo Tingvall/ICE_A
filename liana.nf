@@ -4,7 +4,7 @@ def helpMessage() {
   log.info"""
   Usage:
   The typical command for running the pipeline is as follows:
-    nextflow run PLAC_anno_2.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
+    nextflow run interaction_anno_2.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
 
   Required inputs:
     --peaks [file]                  Patj to text file specifying the name of the peak files(s) in the first column and the path to the file(s) in the second column (For example see: [peaks.txt](example_files/peaks.txt)). The recomended input format for the peak files are 6 column bed files (more columns are allowed but will be ignored): chr, start, end, peakID, peak score, strand. It is also possible to use a 3 column bed but then peakIDs are automaically generated and peak score and strand information are not available.
@@ -261,8 +261,7 @@ process JOIN_ANNOTATED_INTERACTIONS {
 
     script:
     """
-    // Running join_annotated_interactions.py script at LIANA/bin to join the searatly annotated anchor points
-    join_annotated_interactions.py ${anchor1_anno} ${anchor1_anno} ${bed2D_index} --prefix=${prefix} --binsize=${binsize}
+    join_annotated_interactions.py ${anchor1_anno} ${anchor2_anno} ${bed2D_index} --prefix=${prefix} --binsize=${binsize}
     """
 }
 
@@ -344,7 +343,7 @@ else{
   ch_interaction_threshold = Channel.value(params.interaction_threshold)
 }
   /*
-   * 7. PEAK ANNOTATION: PEAKS ANNOTATED BY PROXIMITY OR PLAC-SEQ BASED ANNOTATION
+   * 7. PEAK ANNOTATION: PEAKS ANNOTATED BY PROXIMITY OR INTERACION-BASED ANNOTATION
    */
   process PEAK_INTERACTION_BASED_ANNOTATION {
     publishDir "${params.outdir}/tmp/process7", mode: 'copy', enabled: params.save_tmp
@@ -380,121 +379,7 @@ else{
 
     script:
     """
-    #!/usr/bin/env python
-
-    import pandas as pd
-    import numpy as np
-
-    # Column names for loaded data
-    peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
-    peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
-
-    # Load peak overlap for anchor 1 & 2, as well as annotated peak & 2D-bed files
-    peak_anchor1 = pd.read_table("${peak_anno_anchor1}", index_col=3, names=peak_anchor1_name).sort_index()
-    peak_anchor2 = pd.read_table("${peak_anno_anchor2}", index_col=3, names=peak_anchor2_name).sort_index()
-    peak_anno = pd.read_table("${peak_anno}",index_col=0).sort_index()
-    bed2D_anno = pd.read_table("${bed2D_index_anno}", index_col=1).sort_index().iloc[:,1:]
-
-    # Match peaks with interactions annotations for overlap with anchor point 1 & 2 respectily - Then merge
-    Peak_overlap_1 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor1.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
-      .merge(bed2D_anno.loc[:,['chr2', 's2', 'e2', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Entrez_ID_2', 'Nearest_Refseq_2', 'Nearest_Ensembl_2', 'Gene_Name_2','TSS_1', 'TSS_2']], left_on='anchor1_id', right_index=True, how = 'left').drop_duplicates()
-    Peak_overlap_1['overlap'] = 1
-    Peak_overlap_1.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID', 'Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Anchor_Interaction_TSS', 'Anchor_Overlap']
-    Peak_overlap_2 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor2.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
-      .merge(bed2D_anno.loc[:,['chr1', 's1', 'e1', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Entrez_ID_1', 'Nearest_Refseq_1', 'Nearest_Ensembl_1', 'Gene_Name_1','TSS_2', 'TSS_1']], left_on='anchor2_id', right_index=True, how = 'left').drop_duplicates()
-    Peak_overlap_2['overlap'] = 2
-    Peak_overlap_2.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID', 'Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Anchor_Interaction_TSS', 'Anchor_Overlap']
-    Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
-
-    # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
-    Peak_overlap_merge['Annotation'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= ${promoter_distance}, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= ${interaction_threshold}, 'Proximal_anno', 'Plac_anno')))
-
-    # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
-    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Promoter','Proximal_anno']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Annotation']].drop_duplicates()
-    Proximal['Q-value'] = np.nan
-    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
-
-    # Extracting PLAC-seq annotated peaks
-    Distal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Plac_anno']),:].dropna(subset=['InteractionID'])
-    Distal = Distal.loc[(Distal['Anchor_Overlap_TSS'] == 0) & (Distal['Anchor_Interaction_TSS'] == 1),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Annotation', 'Q-Value']].drop_duplicates()
-    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
-
-    # Merge proximity and PLAC-seq annotated peaks
-    Proximal_Distal = pd.concat([Proximal, Distal]).sort_index().rename_axis('Peak')
-
-    # Annotate unannotated distal peaks by proximity annotation
-    proximity_unannotated = "${proximity_unannotated}"
-    if proximity_unannotated == 'true':
-        # Extracting unannotated distal peaks (not overlapping 2D-bed)
-        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
-        Unannotated['Annotation'], Unannotated['Q-value'] = ['Distal_no_Interaction', np.NaN]
-        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
-        Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
-
-
-    Proximal_Distal['Start'] = Proximal_Distal['Start']-1
-
-    # Organizing and saving annotated files/genelsits
-    mode = "${mode}"
-
-    # Basic/Multiple mode: Handling of peaks annotating to several genes
-    if (mode=='basic' or mode=='multiple'):
-      multiple_anno = "${multiple_anno}"
-      if multiple_anno == 'keep':
-        Proximal_Distal = Proximal_Distal
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'qvalue':
-        Proximal_Distal = Proximal_Distal.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'concentrate':
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-        Proximal_Distal = Proximal_Distal.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-
-      Proximal_Distal.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
-      pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
-
-    # Differntial mode: Creting peak annotation/genelists for UP/DOWN peak_start
-    if mode == 'differential':
-      peak_differntial = pd.read_table("${peak_differential}", index_col=0).sort_index()
-      peak_differntial = peak_differntial.iloc[:, [${log2FC_column}-2, ${padj_column}-2]]
-      peak_differntial.columns = ['log2FC', 'padj']
-      Proximal_Distal_differential=Proximal_Distal.merge(peak_differntial, left_index=True, right_index=True, how = 'left')
-      Proximal_Distal_differential.index.name = 'Peak'
-      Proximal_Distal_up=Proximal_Distal_differential[(Proximal_Distal_differential.padj <= ${padj}) & (Proximal_Distal_differential.log2FC >=${log2FC})]
-      Proximal_Distal_down=Proximal_Distal_differential[(Proximal_Distal_differential.padj <= ${padj}) & (Proximal_Distal_differential.log2FC <= -${log2FC})]
-
-      skip_expression = "${skip_expression}"
-      if skip_expression == 'false':
-        Proximal_Distal_differential_for_differntial_expression = Proximal_Distal_differential.copy(deep=True)
-        Proximal_Distal_differential_for_differntial_expression.to_csv("${peak_name}_${prefix}_annotated_for_differential_expression.txt", index=True, sep='\t' )
-
-      # Differnetial mode: Handling of peaks annotating to several genes
-      multiple_anno = "${multiple_anno}"
-      if multiple_anno == 'keep':
-        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
-        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
-        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'qvalue':
-        Proximal_Distal_differential = Proximal_Distal_differential.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Proximal_Distal_up = Proximal_Distal_up.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Proximal_Distal_down = Proximal_Distal_down.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
-        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
-        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'concentrate':
-        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
-        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
-        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-        Proximal_Distal_differential = Proximal_Distal_differential.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-        Proximal_Distal_up = Proximal_Distal_up.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-        Proximal_Distal_down = Proximal_Distal_down.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-
-      Proximal_Distal_differential.to_csv("${peak_name}_${prefix}_annotated.txt", index=False, sep='\t' )
-      Proximal_Distal_up.to_csv("${peak_name}_${prefix}_annotated_up.txt", index=False, sep='\t' )
-      Proximal_Distal_down.to_csv("${peak_name}_${prefix}_annotated_down.txt", index=False, sep='\t' )
-      pd.DataFrame(Genelist).to_csv("${peak_name}_${prefix}_annotated_genelist.txt", index=False, header=False,sep='\t' )
-      pd.DataFrame(Genelist_up).to_csv("${peak_name}_${prefix}_annotated_genelist_up.txt", index=False, header=False,sep='\t' )
-      pd.DataFrame(Genelist_down).to_csv("${peak_name}_${prefix}_annotated_genelist_down.txt", index=False, header=False,sep='\t' )
+    peak_interaction_based_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_distance ${promoter_distance} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
     """
 }
 
@@ -1997,8 +1882,8 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
   #Finding differntial peaks associated with changes in expression (sepeartion based on.annotation proximal/distal and activating/prepressive)
   annotated_peaks_expression_proximal_activating = annotated_peaks_expression[(annotated_peaks_expression.Annotation.isin(['Promoter', 'Proximal_anno'])) & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC > ${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
   annotated_peaks_expression_proximal_repressive = annotated_peaks_expression[(annotated_peaks_expression.Annotation.isin(['Promoter', 'Proximal_anno'])) & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC > ${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
-  annotated_peaks_expression_distal_activating = annotated_peaks_expression[(annotated_peaks_expression.Annotation == 'Plac_anno') & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC >${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
-  annotated_peaks_expression_distal_repressive = annotated_peaks_expression[(annotated_peaks_expression.Annotation =='Plac_anno') & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC > ${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
+  annotated_peaks_expression_distal_activating = annotated_peaks_expression[(annotated_peaks_expression.Annotation == 'Interaction_anno') & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC >${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
+  annotated_peaks_expression_distal_repressive = annotated_peaks_expression[(annotated_peaks_expression.Annotation =='Interaction_anno') & (annotated_peaks_expression.padj < ${padj}) & (annotated_peaks_expression.Gene_padj < ${expression_padj}) & (((annotated_peaks_expression.log2FC < -${log2FC}) & (annotated_peaks_expression.Gene_log2FC > ${expression_log2FC})) | ((annotated_peaks_expression.log2FC > ${log2FC}) & (annotated_peaks_expression.Gene_log2FC < -${expression_log2FC})))]
 
   #Adding activatin/repressive funktion to all annotated peaks
   annotated_peaks_expression['Activating_or_repressive'] = np.where((annotated_peaks_expression.index.isin(annotated_peaks_expression_proximal_activating.index)) | (annotated_peaks_expression.index.isin(annotated_peaks_expression_distal_activating.index)), 'Activating', np.where((annotated_peaks_expression.index.isin(annotated_peaks_expression_proximal_repressive.index)) | (annotated_peaks_expression.index.isin(annotated_peaks_expression_distal_repressive.index)), 'Repressive', ''))
