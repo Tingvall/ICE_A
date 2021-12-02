@@ -7,7 +7,7 @@ import argparse
 
 # PARSE ARGUMENTS
 Description = 'INTERACTION-CENTERED ANNOTATION WITH PEAK OVERLAP IN MULTIPLE MODE'
-Epilog = """Example usage: interaction_annotation_multiple.py <ANCHOR1_PEAK> <ANCHOR2_PEAK> <BED2D> --prefix <PREFIX> --sample <SAMPLE>"""
+Epilog = """Example usage: interaction_annotation_multiple.py <ANCHOR1_PEAK> <ANCHOR2_PEAK> <BED2D> --prefix <PREFIX>"""
 
 argParser = argparse.ArgumentParser(description=Description, epilog=Epilog)
 
@@ -16,7 +16,6 @@ argParser.add_argument('ANCHOR1_PEAK', help="Annotated anchor1 regions with peak
 argParser.add_argument('ANCHOR2_PEAK', help="Annotated anchor2 regions with peak overlap.")
 argParser.add_argument('BED2D', help="2D-bed interactions.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
-argParser.add_argument('--sample', dest="SAMPLE", help="Name of sample.")
 argParser.add_argument('--network', dest="NETWORK", help="Specifies if files for network visualization in Cytoscape should be created." , choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
 
@@ -27,7 +26,7 @@ argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if C
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, sample, network, complete, upset_plot, circos_plot):
+def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, network, complete, upset_plot, circos_plot):
 
     # Column names for loaded data
     anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_ID', 'Peak1_score')
@@ -90,4 +89,4 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
 
 
 # RUN FUNCTION
-interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, sample=args.SAMPLE, network=args.NETWORK, complete=args.COMPLETE, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT)
+interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, network=args.NETWORK, complete=args.COMPLETE, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT)
