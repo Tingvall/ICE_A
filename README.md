@@ -115,7 +115,8 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
 | `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
-| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`).
+| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). |
+| `--promoter_promoter` | If set to true, promoter-promoter interactions included in network (default: false). |
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
 | `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
