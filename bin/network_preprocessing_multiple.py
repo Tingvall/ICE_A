@@ -7,14 +7,14 @@ import argparse
 
 # PARSE ARGUMENTS
 Description = 'PREPROCESSING OF ANNOTATED INTERATION FOR CYTOSCAPE NETWORK VISUALIZATION IN MULTIPLE MODE'
-Epilog = """Example usage: network_preprocessing_multiple.py <INTERACTIONS_ANNO_AGG> <INTERACTIONS_ANNO> <GENES> --prefix <PREFIX>"""
+Epilog = """Example usage: network_preprocessing_multiple.py <INTERACTIONS_ANNO_AGG> <INTERACTIONS_ANNO> --genes <GENES> --prefix <PREFIX>"""
 
 argParser = argparse.ArgumentParser(description=Description, epilog=Epilog)
 
 # General arguments
 argParser.add_argument('INTERACTIONS_ANNO_AGG', help="Annotated and aggregated interactions.")
 argParser.add_argument('INTERACTIONS_ANNO', help="Annotated, not aggregated interactions")
-argParser.add_argument('GENES', help="Text file specifying genes for filtering.")
+argParser.add_argument('--genes', dest='GENES', help="Text file specifying genes for filtering.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
 argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes)." , choices=['all', 'factor', 'genes'])
 argParser.add_argument('--promoter_promoter', dest="PROMOTER_PROMOTER", help="If set to true, promoter-promoter interactions included in network (default: false).", choices=['true', 'false'])
