@@ -7,7 +7,7 @@ import argparse
 
 # PARSE ARGUMENTS
 Description = 'ANNOTATION OF PEAKS BY PROXIMITY AND INTERACTION-BASED ANNOTATION'
-Epilog = """Example usage: peak_interaction_based_annotaiton.py <PEAK_ANCHOR1> <PEAK_ANCHOR2> <PEAK_ANNO> <BED2D> --prefix <PREFIX>"""
+Epilog = """Example usage: peak_annotaiton.py <PEAK_ANCHOR1> <PEAK_ANCHOR2> <PEAK_ANNO> <BED2D> --prefix <PREFIX>"""
 
 argParser = argparse.ArgumentParser(description=Description, epilog=Epilog)
 
@@ -30,12 +30,12 @@ argParser.add_argument('--log2FC_column', dest="LOG2FC_COLUMN", help="Log2FC col
 argParser.add_argument('--padj_column', dest="PADJ_COLUMN", help="Padj column for differential peaks.", type=int)
 argParser.add_argument('--log2FC', dest="LOG2FC", help="Log2FC threshold for differential peaks.", type=float)
 argParser.add_argument('--padj', dest="PADJ", help="Padj threshold for differential peaks.", type=float)
-argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specify this argument if no --expression file is provided.")
+argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specify this argument if no --expression file is provided.", choices=['true', 'false'])
 
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_interaction_based_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_distance, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_distance, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
     peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
@@ -145,4 +145,4 @@ def peak_interaction_based_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_a
 
 
 # RUN FUNCTION
-peak_interaction_based_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_distance=args.PROMOTER_DISTANCE, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_distance=args.PROMOTER_DISTANCE, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)

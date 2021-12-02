@@ -379,7 +379,7 @@ else{
 
     script:
     """
-    peak_interaction_based_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_distance ${promoter_distance} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_distance ${promoter_distance} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
     """
 }
 
@@ -473,59 +473,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   script:
   if (params.mode == 'basic')
     """
-    #!/usr/bin/env python
-
-    import pandas as pd
-    import numpy as np
-
-    # Column names for loaded data
-    anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_ID', 'Peak1_score')
-    anchor2_peak_name = ('Anchor2_Chr', 'Anchor2_Start', 'Anchor2_End', 'Peak2_Chr', 'Peak2_Start', 'Peak2_End', 'Peak2_ID', 'Peak2_score')
-
-    # Load interaction centered peak overlaps 2and annotated 2D-bed
-    anchor1_peaks = pd.read_table("${anchor_1_peak_collect}", index_col=3,names=anchor1_peak_name).sort_index()
-    anchor2_peaks = pd.read_table("${anchor_2_peak_collect}", index_col=3,names=anchor2_peak_name).sort_index()
-    bed2D_anno = pd.read_table("${bed2D_index_anno}", index_col=1).sort_index().iloc[:,1:]
-
-    # Create Peak columns (chr:start-end) for anchor 1 & 2
-    anchor1_peaks["Peak1_ID"] = anchor1_peaks["Peak1_Chr"].map(str) +':'+ (anchor1_peaks["Peak1_Start"]-1).map(str) +'-'+ anchor1_peaks["Peak1_End"].map(str)
-    anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
-
-    # Merging anchor points
-    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1' ,'Entrez_ID_1', 'Gene_Name_1']].merge(anchor1_peaks.loc[:,['Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
-    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Q-Value_Bias','TSS_1', 'TSS_2']].merge(anchor2_peaks.loc[:,['Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left')
-    anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
-
-    # Creation and use of function for adding 2 columns for peak overlap in anchor points (overlap in anchor 1/2) with 1 if overlap
-    def peak_in_anchor_1(row):
-        if pd.isna(row['Peak1_ID']) :
-            return ''
-        else:
-            return 1
-    def peak_in_anchor_2(row):
-        if pd.isna(row['Peak2_ID']) :
-            return ''
-        else:
-            return 1
-
-    anchors_peaks_anno.index.name = 'Interaction'
-    anchors_peaks_anno['Overlap_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)
-    anchors_peaks_anno['Overlap_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
-    anchors_peaks_anno_original = anchors_peaks_anno.copy(deep=True)
-    anchors_peaks_anno_factor = anchors_peaks_anno[(anchors_peaks_anno['Overlap_1'] == 1) | (anchors_peaks_anno['Overlap_2'] == 1)]
-    anchors_peaks_anno_factor = anchors_peaks_anno_factor.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
-
-    anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
-
-    # Saving annotated interactions files (all interaction and interactions with peak overlap)
-    anchors_peaks_anno_factor.to_csv("${sample}_${prefix}_interactions.txt", index=False, sep='\t' )
-    anchors_peaks_anno.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt", index=True, sep='\t' )
-
-    # Save files for Network
-    network = "${network}"
-    complete = "${complete}"
-    if (network == 'true' or complete == 'true'):
-      anchors_peaks_anno_original.to_csv("${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt", index=True, sep='\t' )
+    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete}
     """
 
   else if (params.mode == 'multiple')
@@ -820,23 +768,23 @@ if (params.mode == 'basic')
   ### Creating edge table for cytoscape
   if network_mode == "all":
     if promoter_promoter =="true":
-      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+      Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
     else:
-      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
+      Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
   elif network_mode == "factor":
     if promoter_promoter =="true":
-      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+      Edges =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
     else:
-      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+      Edges =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
   elif network_mode == "genes":
     if promoter_promoter =="true":
-      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+      Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
     else:
-      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+      Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
-  Nodes.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
+  Edges.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
 
 
   ### Creating node table for cytoscape
@@ -975,23 +923,23 @@ else if (params.mode == 'multiple')
   ### Creating edge table for cytoscape
   if network_mode == "all":
     if promoter_promoter =="true":
-      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
+      Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
     else:
-      Nodes = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
+      Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
   elif network_mode == "factor":
     if promoter_promoter =="true":
-      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+      Edges =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
     else:
-      Nodes =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
+      Edges =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
   elif network_mode == "genes":
     if promoter_promoter =="true":
-      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+      Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
     else:
-      Nodes =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+      Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
-  Nodes.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
+  Edges.to_csv("Network_Edges_${prefix}_interactions.txt", index=False, sep='\t' )
 
 
   ### Creating node table for cytoscape
