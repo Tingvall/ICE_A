@@ -10,9 +10,9 @@ require(mgsub)
 require(optparse)
 
 # Arguments
-option_list <- list(make_option(c("--circos_f"), type="character", default=NULL, help="Input circos plot data for all interaction with factor overlap.", metavar="path"),
-                    make_option(c("--circos_g"), type="character", default=NULL, help="Input circos plot data filtered for for genes.", metavar="path"),
-                    make_option(c("--filter_genes"), type="character", default='NULL', help="", metavar="string"))
+option_list <- list(make_option(c("--circos_f"), type="character", default='NULL', help="Input circos plot data for all interaction with factor overlap.", metavar="path"),
+                    make_option(c("--circos_g"), type="character", default='NULL', help="Input circos plot data filtered for for genes.", metavar="path"),
+                    make_option(c("--filter_genes"), type="character", default='NULL', help="SPecifies if interactions in circos plot should be filtered with gene list.", metavar="string"))
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
