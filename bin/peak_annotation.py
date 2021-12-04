@@ -105,8 +105,8 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
             Proximal_Distal = pd.concat([Proximal_Distal_promoter, Proximal_Distal_remaining]).sort_index().drop_duplicates()
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
 
-      Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
-      pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
+    Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
+    pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
 
     # Differntial mode: Creting peak annotation/genelists for UP/DOWN peak_start
     if mode == 'differential':
@@ -137,7 +137,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Proximal_Distal_up = Proximal_Distal_up.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_up_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
         Proximal_Distal_down_merge = Proximal_Distal_down.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
         Proximal_Distal_down = Proximal_Distal_down.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_down_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
-    elif multiple_anno == 'one_annotation':
+      elif multiple_anno == 'one_annotation':
         Proximal_Distal_differential_promoter = Proximal_Distal_differential.loc[(Proximal_Distal_differential["Peak_type"] == 'Promoter') & (Proximal_Distal_differential["Annotation_method"] == 'Proximal_anno')]
         Proximal_Distal_differential_remaining =  Proximal_Distal_differential[~Proximal_Distal_differential.index.isin(Proximal_Distal_differential_promoter.index)].sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
         Proximal_Distal_differential = pd.concat([Proximal_Distal_differential_promoter, Proximal_Distal_differential_remaining]).sort_index().drop_duplicates()
