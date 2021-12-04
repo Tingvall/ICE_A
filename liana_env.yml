@@ -20,3 +20,4 @@ dependencies:
   - bioconda::nextflow=21.04.0
   - bioconda::bedtools=2.30.0
   - bioconda::homer=4.10
+  - bioconda::bioconductor-rcy3=2.14.0

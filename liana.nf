@@ -603,7 +603,7 @@ process NETWORK_VISUALIZATION {
 
   script:
   """
-  network_visualization.r --nodes ${nodes} --edges ${edges} --nodes_up ${nodes_up} --nodes_down ${nodes_down} --edges_up ${edges_up} --edges_down ${edges_down} --log2FC ${log2FC} --padj ${padj} --expression_log2FC ${expression_log2FC} --expression_padj ${expression_padj} --mode ${mode} --network_mode ${network_mode} --use_peakscore ${use_peakscore}
+  network_visualization.r --nodes ${nodes} --edges ${edges} --outdir ${workDir} --nodes_up ${nodes_up} --nodes_down ${nodes_down} --edges_up ${edges_up} --edges_down ${edges_down} --log2FC ${log2FC} --padj ${padj} --expression_log2FC ${expression_log2FC} --expression_padj ${expression_padj} --mode ${mode} --network_mode ${network_mode} --use_peakscore ${use_peakscore}
   """
 }
 

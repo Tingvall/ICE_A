@@ -22,7 +22,8 @@ option_list <- list(make_option(c("--nodes"), type="character", default='NULL', 
                     make_option(c("--expression_padj"), type="double", default='NULL', help="Padj column for differential expression.", metavar="character"),
                     make_option(c("--mode"), type="character", default='NULL', help="Define which mode to run the pipeline in. The options are basic (default), multiple or differential", metavar="character"),
                     make_option(c("--network_mode"), type="character", default='NULL', help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes).", metavar="value"),
-                    make_option(c("--use_peakscore"), type="character", default='NULL', help="If set to true, peak scores will be used to set edge width in network visualization. Default: false.", metavar="character"))
+                    make_option(c("--use_peakscore"), type="character", default='NULL', help="If set to true, peak scores will be used to set edge width in network visualization. Default: false.", metavar="character"),
+                    make_option(c("--outdir"), type="character", default="./", help="Path for output files", metavar="path"))
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
@@ -38,6 +39,7 @@ if (mode=="differential"){
   nodes <- read.table(opt$nodes, header=TRUE, sep="\t", col.names=c("id", "type"))
   edges <- read.table(opt$edges, header=TRUE, sep="\t", col.names=c("source", "target","score", "type"))
 }
+
 edges[,"interaction"] <- "interacts"
 edges[,"name"] <- paste(edges$source, "(interacts)", edges$target, sep=" ")
 createNetworkFromDataFrames(nodes,edges, title="Network", collection="Networks" )
@@ -103,8 +105,11 @@ if (mode=="differential"){
   }
 }
 toggleGraphicsDetails()
-#exportImage("Network.pdf", 'PDF')
-#exportNetwork("Network.xgmml", type= 'xGMML')
+exportImage("Network.pdf", 'PDF')
+exportNetwork("Network.xgmml", 'xGMML')
+
+#exportImage(paste(opt$outdir, "/Network.pdf", sep=""), 'PDF')
+#exportNetwork(paste(opt$outdir, "/Network.xgmml", sep=""), type= 'xGMML')
 
 if (mode=="differential" & network_mode=="differential"){
 #Up
@@ -146,8 +151,8 @@ if (mode=="differential" & network_mode=="differential"){
     setNodePropertyBypass(up_nodes_diff$id,up_nodes_diff$color,'NODE_FILL_COLOR',bypass = TRUE)
   }
 toggleGraphicsDetails()
-exportImage("Network_up.pdf", 'PDF')
-exportNetwork("Network_up.xgmml", type= 'xGMML')
+exportImage(paste(opt$outdir, "/Network_up.pdf", sep=""), 'PDF')
+exportNetwork(paste(opt$outdir, "/Network_up.xgmml", sep=""), type= 'xGMML')
 
 #Down
   down_nodes <- read.table(opt$nodes_down, header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
