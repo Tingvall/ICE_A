@@ -106,7 +106,9 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | --- | --- |
 | `--mode` | Define which mode to run the pipeline in. The options are basic (default), multiple or differential. |
 | `--outdir` | Specifies the output directory (default: ./results). |
-|`--promoter_distance` | Specifies the distance +/- TSS considered as a promoter (default: 2500). |
+|`--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
+|`--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
+|`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
 |`--binsize` | Bin size used for interaction anchor points (default: 5000). |
 |`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|

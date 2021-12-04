@@ -21,6 +21,7 @@ def helpMessage() {
     --prefix                        Prefix used for interactions (default: PLACseq).
     --promoter_start                Distance upstream of TSS considered a promoter (default: 2500).
     --promoter_end                  Distance downstream of TSS considered a promoter (default: 2500).
+    --skip_promoter_promoter        If true, skip interaction-based annotation of peaks in promoter regions (default:false).
     --binsize                       Binsize used for interactions (default: 5000).
     --interaction_threshold         Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000).
     --proximity_unannotated         Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false).
@@ -359,6 +360,7 @@ else{
     val mode from Channel.value(params.mode)
     val promoter_start from Channel.value(params.promoter_start)
     val promoter_end from Channel.value(params.promoter_end)
+    val skip_promoter_promoter from Channel.value(params.skip_promoter_promoter)
     val interaction_threshold from ch_interaction_threshold
 
     //Differntial mode specific
@@ -382,7 +384,7 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
     """
 }
 

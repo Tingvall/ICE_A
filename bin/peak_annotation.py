@@ -23,6 +23,7 @@ argParser.add_argument('--mode', dest="MODE", help="Define which mode to run the
 argParser.add_argument('--multiple_anno', dest="MULTIPLE_ANNO", help="Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowest qvalue). Default is: concentrate.", choices=['keep', 'concentrate', 'qvalue'])
 argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--skip_promoter_promoter', dest="SKIP_PROMOTER_PROMOTER", help="SPecifies with interaction-based annotation of peaks located in promoter regions should be skiped (default: false).", choices=['true', 'false'])
 argParser.add_argument('--interaction_threshold', dest="INTERACTION_THRESHOLD", help="Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize).", type=int)
 
 # Differntial mode specific arguments
@@ -36,7 +37,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, skip_promoter_promoter, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
     peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
@@ -85,6 +86,8 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
 
     Proximal_Distal['Start'] = Proximal_Distal['Start']-1
+    if (skip_promoter_promoter=='true'):
+        Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
 
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes
@@ -157,4 +160,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
