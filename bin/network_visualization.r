@@ -106,7 +106,7 @@ if (mode=="differential"){
 }
 toggleGraphicsDetails()
 exportImage("Network.pdf", 'PDF')
-exportNetwork("Network.xgmml", 'xGMML')
+exportNetwork("Network.xgmml", type= 'xGMML')
 
 #exportImage(paste(opt$outdir, "/Network.pdf", sep=""), 'PDF')
 #exportNetwork(paste(opt$outdir, "/Network.xgmml", sep=""), type= 'xGMML')
@@ -151,8 +151,8 @@ if (mode=="differential" & network_mode=="differential"){
     setNodePropertyBypass(up_nodes_diff$id,up_nodes_diff$color,'NODE_FILL_COLOR',bypass = TRUE)
   }
 toggleGraphicsDetails()
-exportImage(paste(opt$outdir, "/Network_up.pdf", sep=""), 'PDF')
-exportNetwork(paste(opt$outdir, "/Network_up.xgmml", sep=""), type= 'xGMML')
+exportImage("Network_up.pdf", 'PDF')
+exportNetwork("Network_up.xgmml", type= 'xGMML')
 
 #Down
   down_nodes <- read.table(opt$nodes_down, header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
