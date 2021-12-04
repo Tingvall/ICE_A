@@ -58,46 +58,48 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
 
     # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
-    Peak_overlap_merge['Annotation'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= promoter_distance, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= interaction_threshold, 'Proximal_anno', 'Interaction_anno')))
+    Peak_overlap_merge['Peak_type'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 2500, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 10000, 'Proximal', 'Distal')))
 
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
-    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Promoter','Proximal_anno']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Annotation']].drop_duplicates()
+    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Peak_type'].isin(['Promoter','Proximal']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type']].drop_duplicates()
     Proximal['Q-value'] = np.nan
-    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+    Proximal['Annotation_method'] = 'Proximal_anno'
+    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']
 
-    # Extracting PLAC-seq annotated peaks
-    Distal = Peak_overlap_merge.loc[Peak_overlap_merge['Annotation'].isin(['Interaction_anno']),:].dropna(subset=['InteractionID'])
-    Distal = Distal.loc[(Distal['Anchor_Overlap_TSS'] == 0) & (Distal['Anchor_Interaction_TSS'] == 1),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Annotation', 'Q-Value']].drop_duplicates()
-    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+    # Extracting interaction annotated peaks
+    Distal = Peak_overlap_merge.dropna(subset=['InteractionID'])
+    Distal = Distal.loc[Distal['Anchor_Interaction_TSS'] == 1,['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Q-Value']].drop_duplicates()
+    Distal['Annotation_method'] = 'Interaction_anno'
+    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']
 
     # Merge proximity and PLAC-seq annotated peaks
     Proximal_Distal = pd.concat([Proximal, Distal]).sort_index().rename_axis('Peak')
 
     # Annotate unannotated distal peaks by proximity annotation
-    proximity_unannotated = "proximity_unannotated"
     if proximity_unannotated == 'true':
         # Extracting unannotated distal peaks (not overlapping 2D-bed)
-        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
-        Unannotated['Annotation'], Unannotated['Q-value'] = ['Distal_no_Interaction', np.NaN]
-        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Annotation', 'Q-value']
+        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
+        Unannotated['Q-value'], Unannotated['Annotation_method'] = [np.NaN, 'Proximal_anno']
+        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']
         Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
-
 
     Proximal_Distal['Start'] = Proximal_Distal['Start']-1
 
     # Organizing and saving annotated files/genelsits
-
     # Basic/Multiple mode: Handling of peaks annotating to several genes
     if (mode=='basic' or mode=='multiple'):
-      if multiple_anno == 'keep':
-        Proximal_Distal = Proximal_Distal
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'qvalue':
-        Proximal_Distal = Proximal_Distal.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'concentrate':
-        Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-        Proximal_Distal = Proximal_Distal.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
+        if multiple_anno == 'keep':
+            Proximal_Distal = Proximal_Distal
+            Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
+        elif multiple_anno == 'concentrate':
+            Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
+            Proximal_Distal_merge = Proximal_Distal.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+            Proximal_Distal = Proximal_Distal.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
+        elif multiple_anno == 'one_annotation':
+            Proximal_Distal_promoter = Proximal_Distal.loc[(Proximal_Distal["Peak_type"] == 'Promoter') & (Proximal_Distal["Annotation_method"] == 'Proximal_anno')]
+            Proximal_Distal_remaining =  Proximal_Distal[~Proximal_Distal.index.isin(Proximal_Distal_promoter.index)].sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
+            Proximal_Distal = pd.concat([Proximal_Distal_promoter, Proximal_Distal_remaining]).sort_index().drop_duplicates()
+            Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
 
       Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
       pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
@@ -121,20 +123,29 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
         Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
         Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-      elif multiple_anno == 'qvalue':
-        Proximal_Distal_differential = Proximal_Distal_differential.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Proximal_Distal_up = Proximal_Distal_up.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Proximal_Distal_down = Proximal_Distal_down.sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak').sort_index()
-        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
-        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
-        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
       elif multiple_anno == 'concentrate':
         Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
         Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
         Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-        Proximal_Distal_differential = Proximal_Distal_differential.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-        Proximal_Distal_up = Proximal_Distal_up.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
-        Proximal_Distal_down = Proximal_Distal_down.groupby('Peak').agg(lambda x: ', '.join(list(x.unique().astype(str))))
+        Proximal_Distal_differential_merge = Proximal_Distal_differential.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_differential = Proximal_Distal_differential.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_differential_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
+        Proximal_Distal_up_merge = Proximal_Distal_up.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_up = Proximal_Distal_up.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_up_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
+        Proximal_Distal_down_merge = Proximal_Distal_down.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Q-value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_down = Proximal_Distal_down.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_down_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
+    elif multiple_anno == 'one_annotation':
+        Proximal_Distal_differential_promoter = Proximal_Distal_differential.loc[(Proximal_Distal_differential["Peak_type"] == 'Promoter') & (Proximal_Distal_differential["Annotation_method"] == 'Proximal_anno')]
+        Proximal_Distal_differential_remaining =  Proximal_Distal_differential[~Proximal_Distal_differential.index.isin(Proximal_Distal_differential_promoter.index)].sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
+        Proximal_Distal_differential = pd.concat([Proximal_Distal_differential_promoter, Proximal_Distal_differential_remaining]).sort_index().drop_duplicates()
+        Proximal_Distal_up_promoter = Proximal_Distal_up.loc[(Proximal_Distal_up["Peak_type"] == 'Promoter') & (Proximal_Distal_up["Annotation_method"] == 'Proximal_anno')]
+        Proximal_Distal_up_remaining =  Proximal_Distal_up[~Proximal_Distal_up.index.isin(Proximal_Distal_up_promoter.index)].sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
+        Proximal_Distal_up = pd.concat([Proximal_Distal_up_promoter, Proximal_Distal_up_remaining]).sort_index().drop_duplicates()
+        Proximal_Distal_down_promoter = Proximal_Distal_down.loc[(Proximal_Distal_down["Peak_type"] == 'Promoter') & (Proximal_Distal_down["Annotation_method"] == 'Proximal_anno')]
+        Proximal_Distal_down_remaining =  Proximal_Distal_down[~Proximal_Distal_down.index.isin(Proximal_Distal_down_promoter.index)].sort_values('Q-value').reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
+        Proximal_Distal_down = pd.concat([Proximal_Distal_down_promoter, Proximal_Distal_down_remaining]).sort_index().drop_duplicates()
+        Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
+        Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
+        Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
 
       Proximal_Distal_differential.to_csv(peak_name + '_'+prefix + '_annotated.txt', index=False, sep='\t' )
       Proximal_Distal_up.to_csv(peak_name + '_' + prefix + '_annotated_up.txt', index=False, sep='\t' )
