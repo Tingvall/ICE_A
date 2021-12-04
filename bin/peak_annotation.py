@@ -21,7 +21,8 @@ argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file."
 argParser.add_argument('--proximity_unannotated', dest="PROXIMITY_UNANNOTATED", help="Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false)")
 argParser.add_argument('--mode', dest="MODE", help="Define which mode to run the pipeline in. The options are basic (default), multiple or differential.", choices=['basic', 'multiple', 'differential'])
 argParser.add_argument('--multiple_anno', dest="MULTIPLE_ANNO", help="Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowest qvalue). Default is: concentrate.", choices=['keep', 'concentrate', 'qvalue'])
-argParser.add_argument('--promoter_distance', dest="PROMOTER_DISTANCE", help="Specifies the distance +/- TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--interaction_threshold', dest="INTERACTION_THRESHOLD", help="Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize).", type=int)
 
 # Differntial mode specific arguments
@@ -35,7 +36,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_distance, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
     peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
@@ -58,7 +59,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
 
     # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
-    Peak_overlap_merge['Peak_type'] = np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 2500, 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= 10000, 'Proximal', 'Distal')))
+    Peak_overlap_merge['Peak_type'] = np.where((Peak_overlap_merge['Distance_to_TSS'] >= -promoter_start) & (Peak_overlap_merge['Distance_to_TSS'] <= promoter_end), 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= interaction_threshold, 'Proximal', 'Distal')))
 
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
     Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Peak_type'].isin(['Promoter','Proximal']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type']].drop_duplicates()
@@ -156,4 +157,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_distance=args.PROMOTER_DISTANCE, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)

@@ -19,9 +19,10 @@ def helpMessage() {
     --mode                          Define which mode to run the pipeline in. The options are basic (default), multiple or differntial.
     --outdir                        Specifies the output driectory (default: ./results).
     --prefix                        Prefix used for interactions (default: PLACseq).
-    --promoter_distance             Distance +/- TSS considered a promoter (default: 2500).
+    --promoter_start                Distance upstream of TSS considered a promoter (default: 2500).
+    --promoter_end                  Distance downstream of TSS considered a promoter (default: 2500).
     --binsize                       Binsize used for interactions (default: 5000).
-    --interaction_threshold          Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000).
+    --interaction_threshold         Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000).
     --proximity_unannotated         Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false).
     --multiple_anno                 Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept, with priority order: Promoter, Interaction (lowest q-value), Proximity)). Default is: concentrate.
     --skip_anno                     Skip the HOMER annotation of the interactions (requires specification of path to annotated 2D-bed by using the argumnet --bed2D_anno).
@@ -356,7 +357,8 @@ else{
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
     val mode from Channel.value(params.mode)
-    val promoter_distance from Channel.value(params.promoter_distance)
+    val promoter_start from Channel.value(params.promoter_start)
+    val promoter_end from Channel.value(params.promoter_end)
     val interaction_threshold from ch_interaction_threshold
 
     //Differntial mode specific
@@ -380,7 +382,7 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_distance ${promoter_distance} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression}
     """
 }
 
