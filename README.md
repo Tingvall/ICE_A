@@ -111,6 +111,8 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 |`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
 |`--binsize` | Bin size used for interaction anchor points (default: 5000). |
 |`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
+|`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin. |
+|`--close_peaks_distance` | Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1. |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
 | `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default is: concentrate.|
