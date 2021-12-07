@@ -19,6 +19,7 @@ def helpMessage() {
     --mode                          Define which mode to run the pipeline in. The options are basic (default), multiple or differntial.
     --outdir                        Specifies the output driectory (default: ./results).
     --prefix                        Prefix used for interactions (default: PLACseq).
+    --interaction_score_column      Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format).
     --promoter_start                Distance upstream of TSS considered a promoter (default: 2500).
     --promoter_end                  Distance downstream of TSS considered a promoter (default: 2500).
     --skip_promoter_promoter        If true, skip interaction-based annotation of peaks in promoter regions (default:false).
@@ -204,6 +205,7 @@ process BED2D_SPLIT {
     input:
     path bed2D from ch_bed2D
     val prefix from Channel.value(params.prefix)
+    val interaction_score_column from Channel.value(params.interaction_score_column)
 
     output:
     path "${prefix}_anchor1.bed" into ch_anchor1
@@ -212,7 +214,14 @@ process BED2D_SPLIT {
 
     script:
     """
-    awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$0}' $bed2D > ${prefix}_index.bed
+    n_col=\$(head -n 1 $bed2D | awk '{print NF}')
+    if [ \$n_col == 6 ]
+    then
+      awk 'BEGIN { FS = OFS = "\t" } { \$(NF+1) = 1; print \$0 }' $bed2D > ${prefix}_index_noindex.bed
+      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
+    else
+      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
+    fi
     awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
     awk -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
     """

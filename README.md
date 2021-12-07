@@ -114,6 +114,8 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 |`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin. |
 |`--close_peaks_distance` | Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1. |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
+| `--  interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
+
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
 | `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default is: concentrate.|
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
