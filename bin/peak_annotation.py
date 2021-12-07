@@ -24,10 +24,12 @@ argParser.add_argument('--multiple_anno', dest="MULTIPLE_ANNO", help="Defines ho
 argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
-argParser.add_argument('--close_peaks_type', dest="CLOSE_PEAKS_TYPE", help="Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.", choices=['bin', 'distance'])
-argParser.add_argument('--close_peaks_distance', dest="CLOSE_PEAKS_DISTANCE", help="Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1.", type=int)
+argParser.add_argument('--close_peak_type', dest="close_peak_TYPE", help="Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.", choices=['bin', 'distance'])
+argParser.add_argument('--close_peak_distance', dest="close_peak_DISTANCE", help="Specify distance for peak annoation with close interaction. If --close_peak_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peak_type is distance it specifies distance from peak start/end to bin. Default: 1.", type=int)
 argParser.add_argument('--skip_promoter_promoter', dest="SKIP_PROMOTER_PROMOTER", help="SPecifies with interaction-based annotation of peaks located in promoter regions should be skiped (default: false).", choices=['true', 'false'])
 argParser.add_argument('--interaction_threshold', dest="INTERACTION_THRESHOLD", help="Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize).", type=int)
+argParser.add_argument('--close_promoter_type', dest="CLOSE_PROMOTER_TYPE", help="Specifies how to handle interactions close to promoter. Options are bin (based on number of bins) or distance (distance from TSS to bin). Default: bin.", choices=['bin', 'distance'])
+argParser.add_argument('--close_promoter_distance', dest="CLOSE_PROMOTER_DISTANCE", help="Specify distance for interaction close to but not overlapping TSS. If --close_promoter_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from TSS to bin. Default: 1.", type=int)
 
 # Differntial mode specific arguments
 argParser.add_argument('--peak_differential', dest='PEAK_DIFFERENTIAL', help="Path to textfile that contain log2FC and adjusted p-value from differential analysis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the arguments --log2FC_column and --padj column.")
@@ -40,7 +42,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peaks_type, close_peaks_distance, skip_promoter_promoter, interaction_threshold, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
     peak_anchor2_name = ('peak_chr', 'peak_start', 'peak_end',  'Peak_score', 'anchor2_chr', 'anchor2_start', 'anchor2_end', 'anchor2_id')
@@ -53,35 +55,38 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
     # Match peaks with interactions annotations for overlap with anchor point 1 & 2 respectily - Then merge
     Peak_overlap_1 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor1.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
-      .merge(bed2D_anno.loc[:,['chr1', 's1', 'e1', 'chr2', 's2', 'e2', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Entrez_ID_2', 'Nearest_Refseq_2', 'Nearest_Ensembl_2', 'Gene_Name_2','TSS_1', 'TSS_2']], left_on='anchor1_id', right_index=True, how = 'left').drop_duplicates()
+      .merge(bed2D_anno.loc[:,['chr1', 's1', 'e1', 'chr2', 's2', 'e2', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Distance_to_TSS_2', 'Entrez_ID_2', 'Nearest_Refseq_2', 'Nearest_Ensembl_2', 'Gene_Name_2','TSS_1', 'TSS_2']], left_on='anchor1_id', right_index=True, how = 'left').drop_duplicates()
     Peak_overlap_1['overlap'] = 1
-    Peak_overlap_1.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID',  'Anchor_Overlap_Chr', 'Anchor_Overlap_Start', 'Anchor_Overlap_End', 'Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Anchor_Interaction_TSS', 'Anchor_Overlap']
+    Peak_overlap_1.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID',  'Anchor_Overlap_Chr', 'Anchor_Overlap_Start', 'Anchor_Overlap_End', 'Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'TSS_bin_distance', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Promoter_bin', 'Anchor_Overlap']
     Peak_overlap_2 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor2.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
-      .merge(bed2D_anno.loc[:,['chr2', 's2', 'e2', 'chr1', 's1', 'e1', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Entrez_ID_1', 'Nearest_Refseq_1', 'Nearest_Ensembl_1', 'Gene_Name_1','TSS_2', 'TSS_1']], left_on='anchor2_id', right_index=True, how = 'left').drop_duplicates()
+      .merge(bed2D_anno.loc[:,['chr2', 's2', 'e2', 'chr1', 's1', 'e1', 'cc', 'P-Value_Bias', 'Q-Value_Bias','Distance_to_TSS_1', 'Entrez_ID_1', 'Nearest_Refseq_1', 'Nearest_Ensembl_1', 'Gene_Name_1','TSS_2', 'TSS_1']], left_on='anchor2_id', right_index=True, how = 'left').drop_duplicates()
     Peak_overlap_2['overlap'] = 2
-    Peak_overlap_2.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID',  'Anchor_Overlap_Chr', 'Anchor_Overlap_Start', 'Anchor_Overlap_End','Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Anchor_Interaction_TSS', 'Anchor_Overlap']
+    Peak_overlap_2.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID',  'Anchor_Overlap_Chr', 'Anchor_Overlap_Start', 'Anchor_Overlap_End','Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'cc', 'P-Value','Q-Value', 'TSS_bin_distance', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Promoter_bin', 'Anchor_Overlap']
     Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
 
     # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
     Peak_overlap_merge['Peak_type'] = np.where((Peak_overlap_merge['Distance_to_TSS'] >= -promoter_start) & (Peak_overlap_merge['Distance_to_TSS'] <= promoter_end), 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= interaction_threshold, 'Proximal', 'Distal')))
 
-    # Create two new columns for close interaction anntation: peak_bin_distance (distance between peak and bin center (negative value means interaction is upstream of peak)) and bin (+/- number of bins from peak to bin with interaction)
-    Peak_overlap_merge['Peak_bin_distance'] = ((Peak_overlap_merge.Anchor_Overlap_Start+((Peak_overlap_merge.Anchor_Overlap_End-Peak_overlap_merge.Anchor_Overlap_Start)/2)-Peak_overlap_merge.Start+((Peak_overlap_merge.End-Peak_overlap_merge.Start)/2)))
-    Peak_overlap_merge['Bin'] = round(Peak_overlap_merge.Peak_bin_distance/binsize)
-    if close_peaks_type == 'bin':
-        Peak_overlap_merge = Peak_overlap_merge.loc[~(abs(Peak_overlap_merge['Bin']) > close_peaks_distance),:]
-
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
-    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Peak_type'].isin(['Promoter','Proximal']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type', 'Peak_bin_distance', 'Bin']].drop_duplicates()
-    Proximal['Q-Value'] = np.nan
-    Proximal['Annotation_method'] = 'Proximal_anno'
-    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']
+    Proximal = Peak_overlap_merge.loc[Peak_overlap_merge['Peak_type'].isin(['Promoter','Proximal']),['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type']].drop_duplicates()
+    Proximal['Peak_bin_distance'], Proximal['Q-Peak_bin'], Proximal['Annotation_method'], Proximal['Q-Value'], Proximal['Promoter_bin'], Proximal['TSS_bin_distance'] = [np.nan, np.nan, 'Proximal_anno', np.nan, np.nan, np.nan]
+    Proximal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Q-Value', 'Promoter_bin', 'TSS_bin_distance']
 
     # Extracting interaction annotated peaks
     Distal = Peak_overlap_merge.dropna(subset=['InteractionID'])
-    Distal = Distal.loc[Distal['Anchor_Interaction_TSS'] == 1,['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Peak_bin_distance', 'Bin', 'Q-Value']].drop_duplicates()
+    # Create two new columns for close interaction anntation: peak_bin_distance (distance between peak and bin center (negative value means peak is upstream of interaction)) and bin (+/- number of bins from peak to bin with interaction)
+    Distal['Peak_bin_distance'] = (Distal.Start+((Distal.End-Distal.Start)/2)) - (Distal.Anchor_Overlap_Start+((Distal.Anchor_Overlap_End-Distal.Anchor_Overlap_Start)/2))
+    Distal['Peak_bin'] = round(Distal.Peak_bin_distance/binsize)
+    #Filtering based on close peak/promoter distance
+    if close_peak_type == 'bin':
+        Distal = Distal.loc[~(abs(Peak_overlap_merge['Peak_bin']) > close_peak_distance),:]
+    if close_promoter_type == 'bin':
+        Distal = Distal.loc[~(abs(Distal['Promoter_bin']) > close_promoter_distance),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Peak_bin_distance', 'Peak_bin','Q-Value', 'Promoter_bin','TSS_bin_distance']].drop_duplicates()
+    elif close_promoter_type == 'distance':
+        Distal = Distal.loc[~(abs(Distal['TSS_bin_distance'])-binsize/2 > close_promoter_distance),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Peak_bin_distance', 'Peak_bin', 'Q-Value', 'Promoter_bin', 'TSS_bin_distance']].drop_duplicates()
     Distal['Annotation_method'] = 'Interaction_anno'
-    Distal.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']
+    Distal = Distal.loc[:,['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Peak_bin_distance', 'Peak_bin','Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']]
+    Distal.columns= ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Peak_bin','Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']
 
     # Merge proximity and PLAC-seq annotated peaks
     Proximal_Distal = pd.concat([Proximal, Distal]).sort_index().rename_axis('Peak')
@@ -89,9 +94,9 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     # Annotate unannotated distal peaks by proximity annotation
     if proximity_unannotated == 'true':
         # Extracting unannotated distal peaks (not overlapping 2D-bed)
-        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type', 'Peak_bin_distance', 'Bin']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
-        Unannotated['Q-Value'], Unannotated['Annotation_method'] = [np.NaN, 'Proximal_anno']
-        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']
+        Unannotated = Peak_overlap_merge.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'Peak_type']][~Peak_overlap_merge.index.isin(Proximal_Distal.index)].drop_duplicates()
+        Unannotated['Peak_bin_distance'], Unannotated['Peak_bin'], Unannotated['Annotation_method'], Unannotated['Q-Value'], Unannotated['Promoter_bin'], Unannotated['TSS_bin_distance'] = [np.NaN, np.NaN,'Proximal_anno', np.NaN, np.NaN, np.NaN]
+        Unannotated.columns=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS','EntrezID', 'Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']
         Proximal_Distal = pd.concat([Proximal_Distal, Unannotated]).sort_index().rename_axis('Peak')
 
     Proximal_Distal['Start'] = Proximal_Distal['Start']-1
@@ -106,16 +111,17 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
         elif multiple_anno == 'concentrate':
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-            Proximal_Distal_merge = Proximal_Distal.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+            Proximal_Distal_merge = Proximal_Distal.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
             Proximal_Distal = Proximal_Distal.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
         elif multiple_anno == 'one_annotation':
             Proximal_Distal_promoter = Proximal_Distal.loc[(Proximal_Distal["Peak_type"] == 'Promoter') & (Proximal_Distal["Annotation_method"] == 'Proximal_anno')]
-            Proximal_Distal['abs_bin'] = abs(Proximal_Distal['Bin'])
+            Proximal_Distal['abs_bin'] = abs(Proximal_Distal['Peak_bin'])
             Proximal_Distal_remaining =  Proximal_Distal[~Proximal_Distal.index.isin(Proximal_Distal_promoter.index)].sort_values(["abs_bin", "Q-Value"], ascending = (True, True)).reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
             Proximal_Distal = pd.concat([Proximal_Distal_promoter, Proximal_Distal_remaining]).sort_index().drop_duplicates()
             Proximal_Distal=Proximal_Distal.drop(columns=['abs_bin'])
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
 
+    Proximal_Distal =Proximal_Distal.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
     Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
     pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
 
@@ -142,34 +148,37 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
         Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
         Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
-        Proximal_Distal_differential_merge = Proximal_Distal_differential.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_differential_merge = Proximal_Distal_differential.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin','Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
         Proximal_Distal_differential = Proximal_Distal_differential.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_differential_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
-        Proximal_Distal_up_merge = Proximal_Distal_up.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_up_merge = Proximal_Distal_up.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type', 'Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Q-Value', 'Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
         Proximal_Distal_up = Proximal_Distal_up.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_up_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
-        Proximal_Distal_down_merge = Proximal_Distal_down.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Bin', 'Q-Value', 'Annotation_method']].agg(lambda x: ', '.join(list(x.astype(str))))
+        Proximal_Distal_down_merge = Proximal_Distal_down.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Q-Value','Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
         Proximal_Distal_down = Proximal_Distal_down.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_down_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
       elif multiple_anno == 'one_annotation':
         Proximal_Distal_differential_promoter = Proximal_Distal_differential.loc[(Proximal_Distal_differential["Peak_type"] == 'Promoter') & (Proximal_Distal_differential["Annotation_method"] == 'Proximal_anno')]
-        Proximal_Distal_differential['abs_bin'] = abs(Proximal_Distal_differential['Bin'])
+        Proximal_Distal_differential['abs_bin'] = abs(Proximal_Distal_differential['Peak_bin'])
         Proximal_Distal_differential_remaining =  Proximal_Distal_differential[~Proximal_Distal_differential.index.isin(Proximal_Distal_differential_promoter.index)].sort_values(["abs_bin", "Q-Value"], ascending = (True, True)).reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
         Proximal_Distal_differential = pd.concat([Proximal_Distal_differential_promoter, Proximal_Distal_differential_remaining]).sort_index().drop_duplicates()
         Proximal_Distal_differential=Proximal_Distal_differential.drop(columns=['abs_bin'])
         Genelist = Proximal_Distal_differential.loc[:,'Gene'].unique().tolist()
         Proximal_Distal_up_promoter = Proximal_Distal_up.loc[(Proximal_Distal_up["Peak_type"] == 'Promoter') & (Proximal_Distal_up["Annotation_method"] == 'Proximal_anno')]
-        Proximal_Distal_up['abs_bin'] = abs(Proximal_Distal_up['Bin'])
+        Proximal_Distal_up['abs_bin'] = abs(Proximal_Distal_up['Peak_bin'])
         Proximal_Distal_up_remaining =  Proximal_Distal_up[~Proximal_Distal_up.index.isin(Proximal_Distal_up_promoter.index)].sort_values(["abs_bin", "Q-Value"], ascending = (True, True)).reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
         Proximal_Distal_up = pd.concat([Proximal_Distal_up_promoter, Proximal_Distal_up_remaining]).sort_index().drop_duplicates()
         Proximal_Distal_up=Proximal_Distal_up.drop(columns=['abs_bin'])
         Genelist_up = Proximal_Distal_up.loc[:,'Gene'].unique().tolist()
         Proximal_Distal_down_promoter = Proximal_Distal_down.loc[(Proximal_Distal_down["Peak_type"] == 'Promoter') & (Proximal_Distal_down["Annotation_method"] == 'Proximal_anno')]
-        Proximal_Distal_down['abs_bin'] = abs(Proximal_Distal_down['Bin'])
+        Proximal_Distal_down['abs_bin'] = abs(Proximal_Distal_down['Peak_bin'])
         Proximal_Distal_down_remaining =  Proximal_Distal_down[~Proximal_Distal_down.index.isin(Proximal_Distal_down_promoter.index)].sort_values(["abs_bin", "Q-Value"], ascending = (True, True)).reset_index().drop_duplicates(subset=['Peak'],keep='first').set_index('Peak')
         Proximal_Distal_down = pd.concat([Proximal_Distal_down_promoter, Proximal_Distal_down_remaining]).sort_index().drop_duplicates()
         Proximal_Distal_down=Proximal_Distal_down.drop(columns=['abs_bin'])
         Genelist_down = Proximal_Distal_down.loc[:,'Gene'].unique().tolist()
 
+      Proximal_Distal_differential =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_differential.to_csv(peak_name + '_'+prefix + '_annotated.txt', index=False, sep='\t' )
+      Proximal_Distal_up =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_up.to_csv(peak_name + '_' + prefix + '_annotated_up.txt', index=False, sep='\t' )
+      Proximal_Distal_down =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_down.to_csv(peak_name + '_' + prefix + '_annotated_down.txt', index=False, sep='\t' )
       pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
       pd.DataFrame(Genelist_up).to_csv(peak_name + '_' + prefix + '_annotated_genelist_up.txt', index=False, header=False,sep='\t' )
@@ -177,4 +186,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peaks_type=args.CLOSE_PEAKS_TYPE, close_peaks_distance=args.CLOSE_PEAKS_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance=args.CLOSE_PROMOTER_DISTANCE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)

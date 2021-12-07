@@ -24,8 +24,8 @@ def helpMessage() {
     --skip_promoter_promoter        If true, skip interaction-based annotation of peaks in promoter regions (default:false).
     --binsize                       Binsize used for interactions (default: 5000).
     --interaction_threshold         Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 10000).
-    --close_peaks_type              Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.
-    --close_peaks_distance          Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1.
+    --close_peak_type              Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.
+    --close_peak_distance          Specify distance for peak annoation with close interaction. If --close_peak_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peak_type is distance it specifies distance from peak start/end to bin. Default: 1.
     --proximity_unannotated         Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false).
     --multiple_anno                 Defines how to handle peaks annotated to more than one promoter. Options are keep (all anotations are kept with one row for each annotation), concetrate (the annotated peak file is concetrated to only incude one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept, with priority order: Promoter, Interaction (lowest q-value), Proximity)). Default is: concentrate.
     --skip_anno                     Skip the HOMER annotation of the interactions (requires specification of path to annotated 2D-bed by using the argumnet --bed2D_anno).
@@ -327,7 +327,7 @@ if (params.skip_anno) {
 
     input:
     set val(peak_name), file(peak_bed), file(bed2D_anno_split_anchor1), file(bed2D_anno_split_anchor2) from ch_peak_bed_1.combine(ch_bed2D_anno_split_anchor1_1).combine(ch_bed2D_anno_split_anchor2_1).groupTuple()
-    val close_peaks_distance from Channel.value(params.close_peaks_distance)
+    val close_peak_distance from Channel.value(params.close_peak_distance)
     val binsize from Channel.value(params.binsize)
 
     output:
@@ -335,18 +335,18 @@ if (params.skip_anno) {
     tuple val(peak_name), path("${peak_name}_anchor_2.bed") into ch_peak_anno_anchor2
 
     script:
-    if (params.close_peaks_type == 'bin')
+    if (params.close_peak_type == 'bin')
       """
-      awk '{\$2-=${close_peaks_distance}*${binsize}-1;\$3+=${close_peaks_distance}*${binsize}-1}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
+      awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
       bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
       bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
       """
 
-    else if (params.close_peaks_type == 'distance')
+    else if (params.close_peak_type == 'distance')
       """
-      awk '{\$2-=${close_peaks_distance};\$3+=${close_peaks_distance}}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
-      bedtools intersect -wa -wb -a $peak_bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
-      bedtools intersect -wa -wb -a $peak_bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
+      awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
       """
   }
 
@@ -372,10 +372,12 @@ else{
     val promoter_start from Channel.value(params.promoter_start)
     val promoter_end from Channel.value(params.promoter_end)
     val binsize from Channel.value(params.binsize)
-    val close_peaks_type from Channel.value(params.close_peaks_type)
-    val close_peaks_distance from Channel.value(params.close_peaks_distance)
+    val close_peak_type from Channel.value(params.close_peak_type)
+    val close_peak_distance from Channel.value(params.close_peak_distance)
     val skip_promoter_promoter from Channel.value(params.skip_promoter_promoter)
     val interaction_threshold from ch_interaction_threshold
+    val close_promoter_type from Channel.value(params.close_promoter_type)
+    val close_promoter_distance from Channel.value(params.close_promoter_distance)
 
     //Differntial mode specific
     path peak_differential from ch_peak_differential_1
@@ -398,7 +400,7 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peaks_type ${close_peaks_type} --close_peaks_distance ${close_peaks_distance}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance ${close_promoter_distance} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
     """
 }
 
