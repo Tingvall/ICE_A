@@ -19,6 +19,9 @@ argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file."
 argParser.add_argument('--sample', dest="SAMPLE", help="Name of sample.")
 argParser.add_argument('--network', dest="NETWORK", help="Specifies if files for network visualization in Cytoscape should be created." , choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
+argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
+argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
 
 # Differntial mode specific arguments
 argParser.add_argument('--peak_differential', dest='PEAK_DIFFERENTIAL', help="Path to textfile that contain log2FC and adjusted p-value from differential analysis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the arguments --log2FC_column and --padj column.")
@@ -30,7 +33,7 @@ argParser.add_argument('--padj', dest="PADJ", help="Padj threshold for different
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def interaction_annotation_differential(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, sample, network, complete, peak_differential, log2FC_column, padj_column, log2FC, padj):
+def interaction_annotation_differential(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, sample, network, complete, binsize, promoter_start, promoter_end, peak_differential, log2FC_column, padj_column, log2FC, padj):
 
     # Column names for loaded data
     anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_name', 'Peak1_score')
@@ -53,9 +56,12 @@ def interaction_annotation_differential(anchor_1_peak_collect, anchor_2_peak_col
     anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
 
     # Merging anchor points
-    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1' ,'Entrez_ID_1', 'Gene_Name_1']].merge(anchor1_peaks.loc[:,['Peak1_ID', 'Peak1_score', 'log2FC', 'padj']], left_index=True, right_index=True, how = 'left')
-    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Q-Value_Bias','TSS_1', 'TSS_2']].merge(anchor2_peaks.loc[:,['Peak2_ID', 'Peak2_score', 'log2FC', 'padj']], left_index=True, right_index=True, how = 'left')
-    anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer', suffixes = ('_1', '_2')).drop_duplicates()
+    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1', 'Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
+    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
+    anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
+    anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
+    anchors_peaks_anno['Is_Promoter_1'] = np.where(((anchors_peaks_anno['Distance_to_TSS_1'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_1'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] <= (binsize/2+promoter_start))),1,0)
+    anchors_peaks_anno['Is_Promoter_2'] = np.where(((anchors_peaks_anno['Distance_to_TSS_2'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_2'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] <= (binsize/2+promoter_start))),1,0)
 
     # Creation and use of function for adding 2 columns for peak overlap in anchor points (overlap in anchor 1/2) with 1 if overlap
     def peak_in_anchor_1(row):
@@ -98,4 +104,4 @@ def interaction_annotation_differential(anchor_1_peak_collect, anchor_2_peak_col
 
 
 # RUN FUNCTION
-interaction_annotation_differential(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, sample=args.SAMPLE, network=args.NETWORK, complete=args.COMPLETE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ)
+interaction_annotation_differential(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, sample=args.SAMPLE, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ)

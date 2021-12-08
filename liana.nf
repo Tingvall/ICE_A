@@ -214,13 +214,12 @@ process BED2D_SPLIT {
 
     script:
     """
-    n_col=\$(head -n 1 $bed2D | awk '{print NF}')
-    if [ \$n_col == 6 ]
+    if [ \$(head -n 1 $bed2D | awk '{print NF}') -ge 7 ]
     then
-      awk 'BEGIN { FS = OFS = "\t" } { \$(NF+1) = 1; print \$0 }' $bed2D > ${prefix}_index_noindex.bed
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
-    else
       awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
+    else
+      awk -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
+      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
     fi
     awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
     awk -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
@@ -478,6 +477,9 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   val sample from ch_t_2.sample.collect().map{ it2 -> it2.join(' ')}
   val network from Channel.value(params.network)
   val complete from Channel.value(params.complete)
+  val binsize from Channel.value(params.binsize)
+  val promoter_start from Channel.value(params.promoter_start)
+  val promoter_end from Channel.value(params.promoter_end)
 
   //Multiple mode specific
   val upset_plot from Channel.value(params.upset_plot)
@@ -501,17 +503,17 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   script:
   if (params.mode == 'basic')
     """
-    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete}
+    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end}
     """
 
   else if (params.mode == 'multiple')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --upset_plot ${upset_plot} --circos_plot ${circos_plot}
+    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot}
     """
 
   else if (params.mode == 'differential')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
+    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
     """
 }
 

@@ -18,6 +18,9 @@ argParser.add_argument('BED2D', help="2D-bed interactions.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
 argParser.add_argument('--network', dest="NETWORK", help="Specifies if files for network visualization in Cytoscape should be created." , choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
+argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
+argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
 
 # Multiple mode specific arguments
 argParser.add_argument('--upset_plot', dest="UPSET_PLOT", help="Specifies if Upset plot of peak overlap will be created.", choices=['true', 'false'])
@@ -26,7 +29,7 @@ argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if C
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, network, complete, upset_plot, circos_plot):
+def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, network, complete, binsize, promoter_start, promoter_end, upset_plot, circos_plot):
 
     # Column names for loaded data
     anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_ID', 'Peak1_score')
@@ -42,21 +45,24 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
 
     # Merging anchor points
-    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1' ,'Entrez_ID_1', 'Gene_Name_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
-    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Q-Value_Bias','TSS_1', 'TSS_2']].merge(anchor2_peaks.loc[:,['Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left')
+    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1', 'Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
+    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
     anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
+    anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
+    anchors_peaks_anno['Is_Promoter_1'] = np.where(((anchors_peaks_anno['Distance_to_TSS_1'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_1'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] <= (binsize/2+promoter_start))),1,0)
+    anchors_peaks_anno['Is_Promoter_2'] = np.where(((anchors_peaks_anno['Distance_to_TSS_2'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_2'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] <= (binsize/2+promoter_start))),1,0)
 
     # Creation and use of function for adding 2 columns for each factor (overlap in anchor 1/2) with 1 if overlap
     def peak_in_anchor_1(row):
-      if row['Peak1'] == f :
-        return 1
-      else:
-        return ''
+        if row['Peak1'] == f :
+            return 1
+        else:
+            return ''
     def peak_in_anchor_2(row):
-      if row['Peak2'] == f :
-        return 1
-      else:
-        return ''
+        if row['Peak2'] == f :
+            return 1
+        else:
+            return ''
 
     factor = pd.unique(anchors_peaks_anno[['Peak1', 'Peak2']].dropna().values.ravel('K'))
 
@@ -78,6 +84,8 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
 
     anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
+    anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
+
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
     for f in factor:
         factor_dict[f].to_csv(str(f) + '_' + prefix + '_interactions.txt', index=False, sep='\t' )
@@ -89,4 +97,4 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
 
 
 # RUN FUNCTION
-interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, network=args.NETWORK, complete=args.COMPLETE, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT)
+interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT)
