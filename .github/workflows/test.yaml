@@ -1,0 +1,48 @@
+on:
+  push:
+  pull_request:
+
+name: test
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+
+#      - name: Install Nextflow
+#        run: wget -qO- https://get.nextflow.io | bash
+
+#      - name: Nextflow is executable
+#        run: chmod +x nextflow
+
+#      - name: Verify Nextflow is installed
+#        run: ./nextflow help
+
+      - name: Create Conda environment
+        run: conda env create -f liana_env.yml
+
+      - name: Initialize Conda on shell
+        run: conda init bash
+
+      - name: Activate Conda environment
+        run: conda activate liana_env
+
+      - name: Configure homer
+        run: perl $(which conda)/envs/liana_envs/share/homer*/configureHomer.pl -install mm10
+
+      - name: Download promoter annotations
+        run: perl $(which conda)/envs/liana_env/share/homer*/configureHomer.pl -install human-p
+
+      - name: Verify pipeline works
+        run: nextflow run liana.nf --help
+
+      - name: Run pipeline works
+        run: nextflow run liana.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
+
+
+
