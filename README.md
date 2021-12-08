@@ -4,7 +4,7 @@
 ## Introduction
 More and more evidence points towards the importance of chromatin interactions in gene regulation. The amount of available interaction data is steadily increasing and with that the potential to, in cell type specific manner, assigning transcription factor occupancy and epigenetic features to genes (i.e. peak annotation). Despite this, the standard method for linking genomic regions to genes is still proximity annotation. Improvements have been made to the standard proximity based annotation to facilitate annotation of more distal peaks (e.g. GREAT2). However, cell type specific interactions as well as interactions spanning several hundred kbp with other genes located between the promoter and its distal regulatory regions, are still likely to be missed. One reason for the limited use of chromatin interactions in peak annotation could be that it is time consuming and require a certain skill set. LIANA aim to change this by providing an easy-to-use tool that, in a single command, can perform interaction-based annotation of multiple peak files. LIANA was originally developed for PLAC-seq data, but other forms of interaction data in 2D-bed format can be used as well.
 
-LIANA (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for LIANA, is to perform peak-centerd annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this LIANA provides the option to perform interaction-centers annotation. LIANA can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape. 
+LIANA (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for LIANA, is to perform peak-centerd annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this LIANA provides the option to perform interaction-centers annotation. LIANA can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape.
 
 ![LIANA](LIANA_figure.png)
 
@@ -12,13 +12,13 @@ LIANA (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow 
 To facilitate annotation of different types of input data, the pipeline can be run in three different modes: basic, multiple and differential:
 
 #### Basic mode
-The basic annotation mode performs interaction-based annotation of a single peak file. Examples include annotation of ATAC-seq peaks or a single factor from ChIP-seq/Cut&Run. The main output is a text file that for each peak in the input bed file, provides interaction-based annotation. A gene list, containing all genes that peaks are annotated is also provided. In addition to the peak-centred annotation, it is also possible to perform interaction-centered annotation and visualize the peak annotation in network format using Cytoscape.
+The basic annotation mode performs interaction-based annotation of a single peak file. Examples include annotation of ATAC-seq peaks or transcription factor binding from ChIP-seq/Cut&Run. The main output is a text file that for each peak in the input bed file, provides proximity/interaction-based annotation. A gene list, containing all genes that peaks are annotated is also provided. In addition to the peak-centered annotation, it is also possible to perform interaction-centered annotation and visualize the peak annotation in network format using Cytoscape.
 
 #### Multiple mode
-In many cases, identification of co-binding between multiple transcription factors could be of interest. For these cases multiple mode is suitable. Multiple mode allow you to simultaneously annotating multiple peak files separately (identical to basic mode). In addition, it provides the option to identify and visualize co-occupancy between the regulators in the form of upset plots and interaction-based circos plots. 
+In many cases, identification of co-binding between multiple transcription factors could be of interest. For these cases multiple mode is suitable. Multiple mode allow you to simultaneously annotating multiple peak files separately (identical to basic mode). In addition, it provides the option to identify and visualize co-occupancy between the regulators in the form of upset plots and interaction-based circos plots.
 
 #### Differential mode
-Differential mode is developed to deal with comparison between two conditions. By providing corresponding gene expression data, peaks associated with changes in gene expression can be identified as well as being categorized as activating or repressive. 
+Differential mode is developed to deal with comparison between two conditions. By providing corresponding gene expression data, peaks associated with changes in gene expression can be identified as well as being categorized as activating or repressive.
 
 ## Pipeline summary
 
@@ -30,7 +30,7 @@ The pipeline consist of the following processes:
 4. **ANNOTATE_PEAKS** - Annotation of provided peak file(s) using [`HOMER`](http://homer.ucsd.edu/homer/)
 5. **SPLIT_ANNOTATED_INTERACTIONS** - Annotated 2D-bed file split for peak intersection
 6. **PEAK_INTERACTION_INTERSECT** - Peak-centered intersection of provided peak file(s) with genomic interactions using [`bedtools`](https://bedtools.readthedocs.io/en/latest/index.html)
-7. **PEAK_INTERACTION_BASED_ANNOTATION** - Performing PLAC-seq based annotation of provided peak file(s)
+7. **PEAK_INTERACTION_BASED_ANNOTATION** - Performing interaction-based annotation of provided peak file(s)
 8. **INTERACTION_PEAK_INTERSECT [Optional]** - Interaction-centered intersection of peak file(s) with genomic interactions using [`bedtools`](https://bedtools.readthedocs.io/en/latest/index.html)
 9. **ANNOTATE_INTERACTION_WITH_PEAKS [Optional]** - Interaction based annotation of 2D-bed file with provided peak files(s)
 10. **NETWORK [Optional]** - Creating files for network visualization of peak annotation
@@ -93,7 +93,7 @@ nextflow run liana.nf --help
 
 ## Running the pipeline
 
-### General 
+### General
 The typical command for running the pipeline is as follows:
 
 ```bash
@@ -105,14 +105,23 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | Argument | Description |
 | --- | --- |
 | `--mode` | Define which mode to run the pipeline in. The options are basic (default), multiple or differential. |
-| `--outdir` | Specifies the output driectory (default: ./results). |
+| `--outdir` | Specifies the output directory (default: ./results). |
+|`--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
+|`--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
+|`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
+|`--binsize` | Bin size used for interaction anchor points (default: 5000). |
+|`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
+|`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin. |
+|`--close_peaks_distance` | Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1. |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
+| `--interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
-| `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and qvalue (only one annotation per peak is kept. The annotation is decided by the interaction with the lowest qvalue). Default is: concentrate.|
+| `--multiple_anno` | Defines how to handle peaks annotated to more than one promoter. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default is: concentrate.|
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
 | `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
-| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). 
+| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). |
+| `--promoter_promoter` | If set to true, promoter-promoter interactions included in network (default: false). |
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
 | `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
@@ -135,12 +144,12 @@ When the pipeline is run in differential mode, some additional processes based o
 | `--log2FC_column` | Specifies which column in `--peak_differential` that contain the log2FC values. Default: 3 (standard DESEq2 output). |
 | `--padj_column` | Specifies which column in `--peak_differential` that contain the adjusted p-value values. Default: 9 (standard DESEq2 output). |
 | `--log2FC` | Log2FC threshold for differential peaks. Default: 1.5 |
-| `--padj` | Adjusted p-value treshold for differential peaks. Default: 0.05 |
+| `--padj` | Adjusted p-value threshold for differential peaks. Default: 0.05 |
 | `--skip_expression` | Use this argument if no  `--expression` file is provided. |
 | `--expression_log2FC_column` | Specifies which column in `--expression` that contain the log2FC values. Default: 3 (standard DESEq2 output). |
 | `--expression_padj_column` | Specifies which column in `--expression` that contain the adjusted p-value values. Default: 9 (standard DESEq2 output). |
-| `--expression_log2FC` | Log2FC treshold for differential genes. Default: 1.5 |
-| `--expression_padj` | Adjusted p-value treshold for differential genes. Default: 0.05 |
+| `--expression_log2FC` | Log2FC threshold for differential genes. Default: 1.5 |
+| `--expression_padj` | Adjusted p-value threshold for differential genes. Default: 0.05 |
 
 
 ## Outputs and interpretation
@@ -149,7 +158,7 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
 - `<outdir>/`
   - `Peak_annotation/`: Interaction based annotation of the provided peak files
   - `Interaction_annotation/`: Interactions-centered annotation with peaks
-  - `Network/`: Files and figures related to network visualization of peak annotation 
+  - `Network/`: Files and figures related to network visualization of peak annotation
   - `Co_occupancy/`: Figures providing information about co-occupancy for multiple factors (only available if run in multiple mode)
   - `Differential_expression_associated_peaks/`: Differential peaks associated with changes in gene expression (only available if run in differential mode)
 
@@ -157,7 +166,7 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
 
 <details>
   <summary>Output files</summary>
-  
+
 - `<outdir>/Peak_annotation/`
   - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s)
   - `<sample>_<prefix>_annotated_genelist.txt`: Genelist
@@ -165,20 +174,20 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
 
 
 #### Annotated peak file
-The main output of LIANA is the annotated peak file which is found in the `Peak_annotation/` directory. If run in multiple mode, an annotated peak file will be available for each input bed file. The output is a text file with the peak coordinates and score from the original bed file. For each peak, information about which gene(s) it is annotated to is included (EntrezID, Refseq, Ensemble, symbol). In addition the type of annotation used for that particular peak is provided, with the options: Promoter (The peak is located <2500 bp from TSS), LIANA (annotation based on interaction in the 2D-bed),  proximal_anno (interaction loacted between 2500 and 10000bp from TSS) or Distal_no_Interaction (only available if `--unannotated` is specified, and include distal peaks that are not able to annotate by the provided genomic interactions and instead are annotated to closest gene). For interaction based annotation, the q-value for the interaction is included. In differential mode, additional files for the differential peaks (UP/DOWN) are created and additional columns for log2FC and adjusted p-values for the differntial peaks are present.
+The main output of LIANA is the annotated peak file which is found in the `Peak_annotation/` directory. If several input peak files are provided, an annotated peak file will be available for each input bed file. The output is a text file with the peak coordinates and score (if available) from the original bed file. For each peak, information about which gene(s) it is annotated to is included (EntrezID, Refseq, Ensemble, symbol). The category of each peak based on distance to closest promoter is also specifies with the options: Promoter (specified by `--promoter_start` and `promoter_end`), Proximal (peaks not in promoter but with a distance to TSS below `--interaction_threshold`) or Distal.  In addition, the type of annotation used for that particular peak is provided, with the options: Proximal_anno (For peaks in promoters and below the specified interaction threshold (default 2*binsize), or for distal peaks not annotated by interaction-based annotation if `--unannotated` is specified), Interaction_anno (annotation based on interaction in the 2D-bed). For interaction-based annotation, an interaction score (e.g. q-value) for the interaction is included (column containing score can be specified with `--interaction_score_column`. If not provided, the default score for all interactions are 1). It is possible to include interactions where the anchor points are not overlapping but are close in distance with the peak and/or the TSS (specified with `--close_peak_distance` and `--close_promoter_distance`). The annotated peak file also include columns that specify the distance to the interactions as well as in which bin the interaction is located in relation to the peak/promoter. In differential mode, additional files for the differential peaks (UP/DOWN) are created and additional columns for log2FC and adjusted p-values for the differntial peaks are present.
 
 #### Gene list
-In addition to the annotated peak file(s), a gene list that contain all genes annotated to the peaks. This genelist can be used for Gene Ontology enrichment analysis for example. 
+In addition to the annotated peak file(s), a gene list that contain all genes annotated to the peaks. This gene list can for example be used for gene ontology enrichment analysis.
 
-  
+
 ### Interaction annotation
 
 <details>
   <summary>Output files</summary>
-  
+
 - `<outdir>/Interaction_annotation/`
   - `<prefix>__HOMER_annotated_interactions.txt`: HOMER-annotated 2D-bed
-  - `<prefix>__HOMER_annotated_interactions_with_peak_overlap.txt`: HOMER-annotated 2D-bed with peak overlap 
+  - `<prefix>__HOMER_annotated_interactions_with_peak_overlap.txt`: HOMER-annotated 2D-bed with peak overlap
   - `<sample>_${prefix}_interactions.txt`: Sample associated interactions
 </details>
 
@@ -209,7 +218,7 @@ In addition to the annotated peak file(s), a gene list that contain all genes an
     - `Upset_plot_Promoter_genelist.pdf`: Co-occupancy Upset plot for promoter regions for region associated with provided gene list
     - `Upset_plot_Promoter_genelist.pdf`: Co-occupancy Upset plot for distal regions for region associated with provided gene list
   - `Circos/`
-    - `Circos_plot_peaks.pdf`: Co-occupancy Circos plot 
+    - `Circos_plot_peaks.pdf`: Co-occupancy Circos plot
     - `Circos_plot_genes.pdf` (optional): Co-occupancy Circos plot for selected genes
 </details>
 
@@ -226,6 +235,3 @@ In addition to the annotated peak file(s), a gene list that contain all genes an
   - `<sample>_<prefix>_annotated_differential_expression_distal_activating.txt`
   - `<sample>_<prefix>_annotated_differential_expression_distal_repressive.txt`
 </details>
-
-
-
