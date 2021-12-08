@@ -92,7 +92,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     anchors_peaks_anno.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_overlap.txt', index=True, sep='\t' )
 
     # Save files for Network
-    if (network == 'true' or complete == 'true' or plot_upset =='true' or circos_plot =='true'):
+    if (network == 'true' or complete == 'true' or upset_plot =='true' or circos_plot =='true'):
       anchors_peaks_anno_original.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt', index=True, sep='\t' )
 
 
