@@ -20,7 +20,7 @@ jobs:
      #- name: Initialize Conda on shell
         #run: conda init bash
 
-      -name: Source conda.sh
+      - name: Source conda.sh
         run: source $(echo $(which conda) | rev | cut -d'/' -f3- | rev)/etc/profile.d/conda.sh
 
       - name: Activate Conda environment
