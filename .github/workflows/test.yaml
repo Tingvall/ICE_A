@@ -22,7 +22,7 @@ jobs:
 
       - name: Source conda.sh
         #run: source $(echo $(which conda) | rev | cut -d'/' -f3- | rev)/etc/profile.d/conda.sh
-        run: source $(which conda/etc/profile.d/conda.sh
+        run: source $(which conda)/etc/profile.d/conda.sh
 
       - name: Activate Conda environment
         run: conda activate liana_env
