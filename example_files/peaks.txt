@@ -1,4 +1,3 @@
 sample path
-factor1 /path/to/factor1.bed
-factor2 /path/to/factor2.bed
-factor3 /path/to/factor3.bed
+Peak1 example_files/peaks1.bed
+Peak2 example_files/peaks2.bed
