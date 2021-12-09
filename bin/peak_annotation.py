@@ -52,7 +52,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     peak_anchor2 = pd.read_table(peak_anno_anchor2, index_col=3, names=peak_anchor2_name).sort_index()
     peak_anno = pd.read_table(peak_anno,index_col=0).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
-    bed2D_anno.rename(columns={bed2D_anno.columns[0]: 'chr1', bed2D_anno.columns[1]: 's1', bed2D_anno.columns[2]: 'e2', bed2D_anno.columns[3]: 'chr2', bed2D_anno.columns[4]: 's2', bed2D_anno.columns[5]: 'e2'}, inplace =True)
+    bed2D_anno.rename(columns={bed2D_anno.columns[0]: 'chr1', bed2D_anno.columns[1]: 's1', bed2D_anno.columns[2]: 'e1', bed2D_anno.columns[3]: 'chr2', bed2D_anno.columns[4]: 's2', bed2D_anno.columns[5]: 'e2'}, inplace =True)
 
     # Match peaks with interactions annotations for overlap with anchor point 1 & 2 respectily - Then merge
     Peak_overlap_1 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor1.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
