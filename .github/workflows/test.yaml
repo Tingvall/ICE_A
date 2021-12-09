@@ -17,7 +17,7 @@ jobs:
       - name: Create Conda environment
         run: conda env create -f liana_env.yml
 
-     - name: Initialize Conda on shell
+      - name: Initialize Conda on shell
         run: conda init bash
 
       - name: Source conda.sh
