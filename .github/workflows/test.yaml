@@ -1,6 +1,6 @@
 on:
-  push:
-  pull_request:
+  #push:
+  #pull_request:
 
 name: test
 
@@ -43,6 +43,3 @@ jobs:
 
       - name: Run pipeline works
         run: nextflow run liana.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
-
-
-
