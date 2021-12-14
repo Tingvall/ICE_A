@@ -216,7 +216,7 @@ process BED2D_SPLIT {
     """
     if [ \$(head -n 1 $bed2D | awk '{print NF}') -ge 7 ]
     then
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$9 }' $bed2D > ${prefix}_index.bed
+      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
     else
       awk -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
       awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
