@@ -343,7 +343,13 @@ if (params.skip_anno) {
     tuple val(peak_name), path("${peak_name}_anchor_2.bed") into ch_peak_anno_anchor2
 
     script:
-    if (params.close_peak_type == 'bin')
+    if (params.close_peak_type == 'overlap')
+      """
+      bedtools intersect -wa -wb -a $peak_bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
+      bedtools intersect -wa -wb -a $peak_bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
+      """
+
+    else if (params.close_peak_type == 'bin')
       """
       awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
       bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
