@@ -16,7 +16,7 @@ argParser.add_argument('ANCHOR2_ANNO', help="Annotated anchor2 regions.")
 argParser.add_argument('BED2D', help="2D-bed interactions.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
 argParser.add_argument('--binsize', dest="BINSIZE", help="Interaction bin size.", type=int)
-argParser.add_argument('--close_promoter_type', dest="CLOSE_PROMOTER_TYPE", help="Specifies how to handle interactions close to promoter. Options are bin (based on number of bins) or distance (distance from TSS to bin). Default: bin.", choices=['bin', 'distance'])
+argParser.add_argument('--close_promoter_type', dest="CLOSE_PROMOTER_TYPE", help="Specifies how to handle interactions close to promoter. Options are bin (based on number of bins) or distance (distance from TSS to bin). Default: bin.", choices=['overlap','bin', 'distance'])
 argParser.add_argument('--close_promoter_distance', dest="CLOSE_PROMOTER_DISTANCE", help="Specify distance for interaction close to but not overlapping TSS. If --close_promoter_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from TSS to bin. Default: 1.", type=int)
 
 args = argParser.parse_args()
