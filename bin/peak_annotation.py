@@ -128,13 +128,13 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
             Proximal_Distal=Proximal_Distal.drop(columns=['abs_bin'])
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
 
-    Proximal_Distal =Proximal_Distal.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
-    Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
-    pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
+        Proximal_Distal =Proximal_Distal.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
+        Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
+        pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
 
     # Differntial mode: Creting peak annotation/genelists for UP/DOWN peak_start
     if mode == 'differential':
-      peak_differntial = pd.read_table("peak_differential", index_col=0).sort_index()
+      peak_differntial = pd.read_table(peak_differential, index_col=0).sort_index()
       peak_differntial = peak_differntial.iloc[:, [log2FC_column-2, padj_column-2]]
       peak_differntial.columns = ['log2FC', 'padj']
       Proximal_Distal_differential=Proximal_Distal.merge(peak_differntial, left_index=True, right_index=True, how = 'left')

@@ -31,56 +31,56 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
   interactions_anno = pd.read_table(interactions_annotated, index_col=0)
 
   # Aggregating interaction file to only incude one row per interaction
-  interactions_anno = interactions_anno.iloc[:,np.r_[0:5,7:15, 17:len(anchors_peaks_anno.columns)]]
+  interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6, 9:14, 15, 18:len(anchors_peaks_anno.columns)]]
   interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
   interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
-  interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:5], interactions_anno['Anchor2'],interactions_anno.iloc[:,8:(len(interactions_anno.columns)-2)]], axis=1)
+  interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
 
   ### Creating edge table for cytoscape
   #Factor-Interaction
   Factor_Interaction = anchors_peaks_anno.copy(deep=True)
   Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = sample
-  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "sample
-  Factor_Interaction = Factor_Interaction[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID','Peak1_score', 'chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score', 'TSS_1', 'TSS_2']]
+  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = sample
+  Factor_Interaction = Factor_Interaction[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID','Peak1_score', 'chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score', 'Is_Promoter_1', 'Is_Promoter_2']]
   Factor_Interaction['Anchor1'] = Factor_Interaction['chr1'].map(str) +':'+ (Factor_Interaction['s1']).map(str) +'-'+ Factor_Interaction['e1'].map(str)
   Factor_Interaction['Anchor2'] = Factor_Interaction['chr2'].map(str) +':'+ (Factor_Interaction['s2']).map(str) +'-'+ Factor_Interaction['e2'].map(str)
   Factor_Interaction = Factor_Interaction.dropna(subset=['Peak1', 'Peak2'], thresh=1)
 
   #Factor-Distal
-  Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['TSS_1'] == 0) & (Factor_Interaction['TSS_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+  Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
   Factor_Distal_1.columns = ['Source', 'Target', 'Edge_score']
-  Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['TSS_1'] == 1) & (Factor_Interaction['TSS_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+  Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
   Factor_Distal_2.columns = ['Source', 'Target', 'Edge_score']
   Factor_Distal = Factor_Distal_1.append(Factor_Distal_2)
   Factor_Distal['Edge_type'] = 'Factor-Distal'
 
   #Factor-Promoter
-  Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['TSS_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+  Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
   Factor_Promoter_1.columns = ['Source', 'Target', 'Edge_score']
-  Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['TSS_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+  Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
   Factor_Promoter_2.columns = ['Source', 'Target', 'Edge_score']
   Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
   Factor_Promoter['Edge_type'] = 'Factor-Promoter'
 
   #Distal-Promoter
-  DP_1 = interactions_anno.loc[(interactions_anno['TSS_1'] == 0) & (interactions_anno['TSS_2'] == 1), ['Anchor1','Anchor2', 'Q-Value_Bias']]
+  DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']]
   DP_1.columns = ['Source', 'Target', 'Edge_score']
-  DP_2 = interactions_anno.loc[(interactions_anno['TSS_1'] == 1) & (interactions_anno['TSS_2'] == 0), ['Anchor2',  'Anchor1', 'Q-Value_Bias']]
+  DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
   DP_2.columns = ['Source', 'Target', 'Edge_score']
   Distal_Promoter = DP_1.append(DP_2)
   Distal_Promoter['Edge_type'] = 'Distal-Promoter'
   Distal_Promoter['Edge_score'] = - np.log10(Distal_Promoter['Edge_score'])
 
   #Promoter-Promoter
-  Promoter_Promoter = interactions_anno.loc[(interactions_anno['TSS_1']==1) & (interactions_anno['TSS_2']==1),:][['Anchor1', 'Anchor2', 'Q-Value_Bias']]
+  Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
   Promoter_Promoter['Edge_type'] = 'Promoter-Promoter'
   Promoter_Promoter.columns = ['Source', 'Target', 'Edge_score', 'Edge_type']
   Promoter_Promoter['Edge_score'] = - np.log10(Promoter_Promoter['Edge_score'])
 
   #Promoter-Gene
-  Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['TSS_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).drop_duplicates()
+  Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).drop_duplicates()
   Promoter_Gene_1.columns = ['Source', 'Target']
-  Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['TSS_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).drop_duplicates()
+  Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).drop_duplicates()
   Promoter_Gene_2.columns = ['Source', 'Target']
   Promoter_Gene = Promoter_Gene_1.append(Promoter_Gene_2)
   Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']

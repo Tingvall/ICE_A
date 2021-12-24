@@ -63,17 +63,29 @@ createVisualStyle(style.name, defaults, list(nodeShape, nodeFills, nodeHeights, 
 setVisualStyle(style.name)
 lockNodeDimensions(FALSE, style.name)
 
-#Set edge width based on q-value for interactions (and peak score for peaks if the argument use_peakscore is set to true)
+#Set edge width based on interaction score for interactions (and peak score for peaks if the argument use_peakscore is set to true)
 use_peakscore = opt$use_peakscore
 if (use_peakscore=="true"){
   edges_interaction <- edges[edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-  edges_interaction$score <- 9*((edges_interaction$score-min(edges_interaction$score))/(max(edges_interaction$score)-min(edges_interaction$score)))+1
+  if (sum(! is.na(edges_interaction$score)) < 1){
+    edges_interaction[is.na(edges_interaction$score), "score"] <- 1
+  }
+  else {
+    edges_interaction[is.na(edges_interaction$score)] <- min(edges_interaction[!is.na(edges_interaction$score)])/2
+    edges_interaction$score <- 9*((edges_interaction$score-min(edges_interaction$score))/(max(edges_interaction$score)-min(edges_interaction$score)))+1
+  }
   edges_factor <- edges[edges$type %in% c("Factor-Distal", "Factor-Promoter"),]
   edges_factor$score <- 9*((edges_factor$score-min(edges_factor$score))/(max(edges_factor$score)-min(edges_factor$score)))+1
   edges_score <- rbind(edges_interaction, edges_factor)
 } else{
   edges_score <- edges[edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-  edges_score$score <- 9*((edges_score$score-min(edges_score$score))/(max(edges_score$score)-min(edges_score$score)))+1
+  if (sum(! is.na(edges_score$score)) < 1){
+    edges_score[is.na(edges_score$score), "score"] <- 1
+  }
+  else {
+    edges_score[is.na(edges_score$score)] <- min(edges_score[!is.na(edges_score$score)])/2
+    edges_score$score <- 9*((edges_score$score-min(edges_score$score))/(max(edges_score$score)-min(edges_score$score)))+1
+  }
 }
 setEdgePropertyBypass(edge.names=edges_score$name, new.values=edges_score$score, visual.property='EDGE_WIDTH',bypass = TRUE)
 
@@ -123,13 +135,21 @@ if (mode=="differential" & network_mode=="differential"){
 
   if (use_peakscore=="true"){
     up_edges_interaction <- up_edges[up_edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-    up_edges_interaction$score <- 9*((up_edges_interaction$score-min(up_edges_interaction$score))/(max(up_edges_interaction$score)-min(up_edges_interaction$score)))+1
+    if (sum(! is.na(up_edges_interaction$score)) < 1){
+      up_edges_interaction[is.na(up_edges_interaction$score), "score"] <- 1
+    } else {
+      up_edges_interaction[is.na(up_edges_interaction$score)] <- min(up_edges_interaction[!is.na(up_edges_interaction$score)])/2
+      up_edges_interaction$score <- 9*((up_edges_interaction$score-min(up_edges_interaction$score))/(max(up_edges_interaction$score)-min(up_edges_interaction$score)))+1}
     up_edges_factor <- up_edges[up_edges$type %in% c("Factor-Distal", "Factor-Promoter"),]
     up_edges_factor$score <- 9*((up_edges_factor$score-min(up_edges_factor$score))/(max(up_edges_factor$score)-min(up_edges_factor$score)))+1
     up_edges_score <- rbind(up_edges_interaction, up_edges_factor)
   } else{
     up_edges_score <- up_edges[up_edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-    up_edges_score$score <- 9*((up_edges_score$score-min(up_edges_score$score))/(max(up_edges_score$score)-min(up_edges_score$score)))+1
+    if (sum(! is.na(up_edges_score$score)) < 1){
+      up_edges_score[is.na(up_edges_score$score), "score"] <- 1
+    } else {
+      up_edges_score[is.na(up_edges_score$score)] <- min(up_edges_score[!is.na(up_edges_score$score)])/2
+      up_edges_score$score <- 9*((up_edges_score$score-min(up_edges_score$score))/(max(up_edges_score$score)-min(up_edges_score$score)))+1}
   }
   setEdgePropertyBypass(edge.names=up_edges_score$name, new.values=up_edges_score$score, visual.property='EDGE_WIDTH',bypass = TRUE)
 
@@ -165,13 +185,21 @@ exportNetwork("Network_up.xgmml", type= 'xGMML')
 
   if (use_peakscore=="true"){
     down_edges_interaction <- down_edges[down_edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-    down_edges_interaction$score <- 9*((down_edges_interaction$score-min(down_edges_interaction$score))/(max(down_edges_interaction$score)-min(down_edges_interaction$score)))+1
+    if (sum(! is.na(down_edges_interaction$score)) < 1){
+      down_edges_interaction[is.na(down_edges_interaction$score), "score"] <- 1
+    } else {
+      down_edges_interaction[is.na(down_edges_interaction$score)] <- min(down_edges_interaction[!is.na(down_edges_interaction$score)])/2
+      down_edges_interaction$score <- 9*((down_edges_interaction$score-min(down_edges_interaction$score))/(max(down_edges_interaction$score)-min(down_edges_interaction$score)))+1}
     down_edges_factor <- down_edges[down_edges$type %in% c("Factor-Distal", "Factor-Promoter"),]
     down_edges_factor$score <- 9*((down_edges_factor$score-min(down_edges_factor$score))/(max(down_edges_factor$score)-min(down_edges_factor$score)))+1
     down_edges_score <- rbind(down_edges_interaction, down_edges_factor)
   } else{
     down_edges_score <- down_edges[down_edges$type %in% c("Distal-Promoter", "Promoter-Promoter"),]
-    down_edges_score$score <- 9*((down_edges_score$score-min(down_edges_score$score))/(max(down_edges_score$score)-min(down_edges_score$score)))+1
+    if (sum(! is.na(down_edges_score$score)) < 1){
+      down_edges_score[is.na(down_edges_score$score), "score"] <- 1
+    } else {
+      down_edges_score[is.na(down_edges_score$score)] <- min(down_edges_score[!is.na(down_edges_score$score)])/2
+      down_edges_score$score <- 9*((down_edges_score$score-min(down_edges_score$score))/(max(down_edges_score$score)-min(down_edges_score$score)))+1}
   }
   setEdgePropertyBypass(edge.names=down_edges_score$name, new.values=down_edges_score$score, visual.property='EDGE_WIDTH',bypass = TRUE)
 
