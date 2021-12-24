@@ -519,7 +519,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
 
   else if (params.mode == 'differential')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
+    interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
     """
 }
 

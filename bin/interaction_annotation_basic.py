@@ -42,8 +42,8 @@ def interaction_annotation_basic(anchor_1_peak_collect, anchor_2_peak_collect, b
     anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
 
     # Merging anchor points
-    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1', 'Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
-    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
+    anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1','e1', 'Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
+    anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2','e2' ,'Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
     anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
     anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
     anchors_peaks_anno['Is_Promoter_1'] = np.where(((anchors_peaks_anno['Distance_to_TSS_1'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_1'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] <= (binsize/2+promoter_start))),1,0)

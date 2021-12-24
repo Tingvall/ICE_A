@@ -128,9 +128,9 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
             Proximal_Distal=Proximal_Distal.drop(columns=['abs_bin'])
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
 
-    Proximal_Distal =Proximal_Distal.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
-    Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
-    pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
+        Proximal_Distal =Proximal_Distal.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
+        Proximal_Distal.to_csv(peak_name + '_' + prefix + '_annotated.txt', index=False, sep='\t' )
+        pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
 
     # Differntial mode: Creting peak annotation/genelists for UP/DOWN peak_start
     if mode == 'differential':
