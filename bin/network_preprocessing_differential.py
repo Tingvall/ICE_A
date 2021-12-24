@@ -16,6 +16,7 @@ argParser.add_argument('INTERACTIONS_ANNO_AGG', help="Annotated and aggregated i
 argParser.add_argument('INTERACTIONS_ANNO', help="Annotated, not aggregated interactions")
 argParser.add_argument('--genes', dest='GENES', help="Text file specifying genes for filtering.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
+argParser.add_argument('--sample', dest="SAMPLE", help="Sample name.")
 argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes)." , choices=['all', 'factor', 'genes'])
 argParser.add_argument('--promoter_promoter', dest="PROMOTER_PROMOTER", help="If set to true, promoter-promoter interactions included in network (default: false).", choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
@@ -34,7 +35,7 @@ argParser.add_argument('--expression_padj_column', dest="EXPRESSION_PADJ_COLUMN"
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def network_preprocessing_differential(interactions_annotated, interactions_annotated_not_aggregated, genes, prefix, network_mode, promoter_promoter, peak_differential, expression, log2FC_column, padj_column, log2FC, padj, skip_expression, expression_log2FC_column, expression_padj_column, complete):
+def network_preprocessing_differential(interactions_annotated, interactions_annotated_not_aggregated, genes, prefix, sample, network_mode, promoter_promoter, peak_differential, expression, log2FC_column, padj_column, log2FC, padj, skip_expression, expression_log2FC_column, expression_padj_column, complete):
 
   #Loading input file
   anchors_peaks_anno = pd.read_table(interactions_annotated_not_aggregated, index_col=0)
@@ -47,16 +48,16 @@ def network_preprocessing_differential(interactions_annotated, interactions_anno
     expression_diff = expression.loc[(expression['padj'] <= padj) & (abs(expression['log2FC']) >= log2FC),:]
 
   # Aggregating interaction file to only incude one row per interaction
-  interactions_anno = interactions_anno.iloc[:,np.r_[0:5,8,11:16, 21:len(anchors_peaks_anno.columns)]]
+  interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,11:16,17, 22:len(anchors_peaks_anno.columns)]]
   interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
   interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
-  interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:5], interactions_anno['Anchor2'],interactions_anno.iloc[:,8:(len(interactions_anno.columns)-2)]], axis=1)
+  interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
 
   ### Creating edge table for cytoscape
   #Factor-Interaction
   Factor_Interaction = anchors_peaks_anno.copy(deep=True)
   Factor_Interaction.loc[Factor_Interaction.Overlap_1 == 1, 'Peak1'] = sample
-  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = "sample
+  Factor_Interaction.loc[Factor_Interaction.Overlap_2 == 1, 'Peak2'] = sample
   Factor_Interaction = Factor_Interaction[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID','Peak1_score', 'log2FC_1', 'padj_1','chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score','log2FC_2', 'padj_2', 'Is_Promoter_1', 'Is_Promoter_2']]
   Factor_Interaction['Anchor1'] = Factor_Interaction['chr1'].map(str) +':'+ (Factor_Interaction['s1']).map(str) +'-'+ Factor_Interaction['e1'].map(str)
   Factor_Interaction['Anchor2'] = Factor_Interaction['chr2'].map(str) +':'+ (Factor_Interaction['s2']).map(str) +'-'+ Factor_Interaction['e2'].map(str)
@@ -156,7 +157,7 @@ def network_preprocessing_differential(interactions_annotated, interactions_anno
   elif (network_mode == "genes" or network_mode == "expression"):
       #Filter edges based on gene
       if network_mode == "genes":
-          genes = pd.read_table("genes, header=None)
+          genes = pd.read_table(genes, header=None)
 
       elif network_mode == "expression":
           genes = pd.DataFrame(pd.unique(expression_diff.index.dropna().values.ravel('K')))
@@ -215,7 +216,7 @@ def network_preprocessing_differential(interactions_annotated, interactions_anno
         Egdes_up =  Factor_Distal_up.append([Factor_Promoter_up, Distal_Promoter_filt_up, Promoter_Gene_filt_up]).drop_duplicates()
         Egdes_down =  Factor_Distal_down.append([Factor_Promoter_down, Distal_Promoter_filt_down, Promoter_Gene_filt_down]).drop_duplicates()
 
-    Egdes_up.to_csv(Network_Edges_' + prefix + '_interactions_up.txt', index=False, sep='\t' )
+    Egdes_up.to_csv('Network_Edges_' + prefix + '_interactions_up.txt', index=False, sep='\t' )
     Egdes_down.to_csv('Network_Edges_' + prefix + '_interactions_down.txt', index=False, sep='\t' )
 
   Egdes.to_csv('Network_Edges_' + prefix + '_interactions.txt', index=False, sep='\t' )
@@ -346,4 +347,4 @@ def network_preprocessing_differential(interactions_annotated, interactions_anno
 
 
 # RUN FUNCTION
-network_preprocessing_differential(interactions_annotated=args.INTERACTIONS_ANNO_AGG, interactions_annotated_not_aggregated=args.INTERACTIONS_ANNO, genes=args.GENES, prefix=args.PREFIX, network_mode=args.NETWORK_MODE, promoter_promoter=args.PROMOTER_PROMOTER, peak_differential=args.PEAK_DIFFERENTIAL, expression=args.EXPRESSION, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION, expression_log2FC_column=args.EXPRESSION_LOG2FC_COLUMN, expression_padj_column=args.EXPRESSION_PADJ_COLUMN, complete=args.COMPLETE)
+network_preprocessing_differential(interactions_annotated=args.INTERACTIONS_ANNO_AGG, interactions_annotated_not_aggregated=args.INTERACTIONS_ANNO, genes=args.GENES, prefix=args.PREFIX, sample=args.SAMPLE, network_mode=args.NETWORK_MODE, promoter_promoter=args.PROMOTER_PROMOTER, peak_differential=args.PEAK_DIFFERENTIAL, expression=args.EXPRESSION, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION, expression_log2FC_column=args.EXPRESSION_LOG2FC_COLUMN, expression_padj_column=args.EXPRESSION_PADJ_COLUMN, complete=args.COMPLETE)

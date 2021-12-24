@@ -28,7 +28,7 @@ argParser.add_argument('--expression_padj', dest="EXPRESSION_PADJ", help="Padj t
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def differential_expression_associated_peaks(annotated_peaks, expression, prefix, log2FC_column, padj_column, log2FC, padj, expression_log2FC_column, expression_padj_column, expression_log2FC, expression_padj, complete):
+def differential_expression_associated_peaks(annotated_peaks, expression, prefix, sample, log2FC_column, padj_column, log2FC, padj, expression_log2FC_column, expression_padj_column, expression_log2FC, expression_padj):
 
   #Loading data
   annotated_peaks = pd.read_table(annotated_peaks, index_col=0).sort_index()
@@ -56,4 +56,4 @@ def differential_expression_associated_peaks(annotated_peaks, expression, prefix
   annotated_peaks_expression_distal_repressive.to_csv(sample + '_' + prefix + '_annotated_differential_expression_distal_repressive.txt', index=True, sep='\t' )
 
 # RUN FUNCTION
-differential_expression_associated_peaks(annotated_peaks=args.ANNOTATED_PEAKS, expression=args.EXPRESSION, prefix=args.PREFIX, sample=args.SAMPLE, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, expression_log2FC_column=args.EXPRESSION_LOG2FC_COLUMN, expression_padj_column=args.EXPRESSION_PADJ_COLUMN, expression_log2FC=args.EXPRESSION_LOG2FC, expression_padj=args.EXPRESSION_PADJ, complete=args.COMPLETE)
+differential_expression_associated_peaks(annotated_peaks=args.ANNOTATED_PEAKS, expression=args.EXPRESSION, prefix=args.PREFIX, sample=args.SAMPLE, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, expression_log2FC_column=args.EXPRESSION_LOG2FC_COLUMN, expression_padj_column=args.EXPRESSION_PADJ_COLUMN, expression_log2FC=args.EXPRESSION_LOG2FC, expression_padj=args.EXPRESSION_PADJ)

@@ -590,7 +590,7 @@ else if (params.mode == 'multiple')
 
 else if (params.mode == 'differential')
   """
-  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated}--genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter}--peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete}
+  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete}
   """
 }
 
@@ -748,6 +748,6 @@ process DIFFERENTIAL_EXPRESSION_ASSOCIATED_PEAKS {
 
   script:
   """
-  differential_expression_associated_peaks.py ${annotated_peaks} ${expression} --prefix ${prefix} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --expression_log2FC ${expression_log2FC} --expression_padj ${expression_padj} --complete ${complete}
+  differential_expression_associated_peaks.py ${annotated_peaks} ${expression} --prefix ${prefix} --sample ${sample} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --expression_log2FC ${expression_log2FC} --expression_padj ${expression_padj}
   """
 }
