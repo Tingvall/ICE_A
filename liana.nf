@@ -296,11 +296,13 @@ if (params.skip_anno) {
       output:
       tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
       tuple val(peak_name), file("${peak_name}.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
+      path "promoter_positions.txt" into ch_promoter_positions
 
       script:
       """
       annotatePeaks.pl $peak_file $genome > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}.bed
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/plac_anno_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
 
@@ -379,6 +381,7 @@ else{
 
     input:
     set val(peak_name), file(peak_anno_anchor1), file(peak_anno_anchor2), file(peak_anno), file(bed2D_index_anno) from ch_peak_anno_anchor1.join(ch_peak_anno_anchor2).join(ch_peak_anno).combine(ch_bed2D_index_anno_1)
+    path promoter_positions from ch_promoter_positions
     val proximity_unannotated from Channel.value(params.proximity_unannotated)
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
@@ -414,7 +417,7 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance ${close_promoter_distance} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance ${close_promoter_distance} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
     """
 }
 
