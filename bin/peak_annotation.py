@@ -16,6 +16,7 @@ argParser.add_argument('PEAK_ANCHOR1', help="Annotated anchor1 regions.")
 argParser.add_argument('PEAK_ANCHOR2', help="Annotated anchor2 regions.")
 argParser.add_argument('PEAK_ANNO', help="HOMER annotated peak file.")
 argParser.add_argument('BED2D', help="2D-bed interactions.")
+argParser.add_argument('--promoter_pos', dest="PROMOTER_POS", help="Text file containing promoter positions from HOMER.")
 argParser.add_argument('--peak_name', dest="PEAK_NAME", help="Name of peak.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
 argParser.add_argument('--proximity_unannotated', dest="PROXIMITY_UNANNOTATED", help="Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false)")
@@ -42,7 +43,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, promoter_pos, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
 
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
@@ -54,6 +55,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     peak_anno = pd.read_table(peak_anno,index_col=0).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
     bed2D_anno.rename(columns={bed2D_anno.columns[0]: 'chr1', bed2D_anno.columns[1]: 's1', bed2D_anno.columns[2]: 'e1', bed2D_anno.columns[3]: 'chr2', bed2D_anno.columns[4]: 's2', bed2D_anno.columns[5]: 'e2'}, inplace =True)
+    promoter_pos = pd.read_table(promoter_pos, names=("TSS_chr", "TSS_start", "TSS_end", "TSS_strand"))
 
     # Match peaks with interactions annotations for overlap with anchor point 1 & 2 respectily - Then merge
     Peak_overlap_1 =peak_anno.loc[:,['Chr','Start','End', 'Peak Score', 'Distance to TSS','Entrez ID','Nearest Refseq','Nearest Ensembl','Gene Name']].merge(peak_anchor1.iloc[:,7:], left_index=True, right_index=True, how = 'outer')\
@@ -110,6 +112,11 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     if (skip_promoter_promoter=='true'):
         Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
 
+    # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
+    Proximal_Distal=Proximal_Distal.merge(promoter_pos["TSS_start"], left_on='Refseq', right_index=True, how = 'left')
+    Proximal_Distal["Distance_to_TSS"] = ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS_start
+    Proximal_Distal=Proximal_Distal.drop(columns=['TSS_start'])
+
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes
     if (mode=='basic' or mode=='multiple'):
@@ -118,8 +125,8 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
         elif multiple_anno == 'concentrate':
             Genelist = Proximal_Distal.loc[:,'Gene'].unique().tolist()
-            Proximal_Distal_merge = Proximal_Distal.groupby('Peak')[['EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Interaction_score', 'Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
-            Proximal_Distal = Proximal_Distal.loc[:,['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS']].merge(Proximal_Distal_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
+            Proximal_Distal_merge = Proximal_Distal.groupby('Peak')[['Distance_to_TSS','EntrezID','Refseq','Ensembl', 'Gene', 'Peak_type','Peak_bin_distance', 'Peak_bin', 'Annotation_method', 'Interaction_score', 'Promoter_bin','TSS_bin_distance']].agg(lambda x: ', '.join(list(x.astype(str))))
+            Proximal_Distal = Proximal_Distal.loc[:,['Chr', 'Start', 'End', 'Peak_score']].merge(Proximal_Distal_merge, left_index=True, right_index=True, how='outer').drop_duplicates()
         elif multiple_anno == 'one_annotation':
             Proximal_Distal_promoter = Proximal_Distal.loc[(Proximal_Distal["Peak_type"] == 'Promoter') & (Proximal_Distal["Annotation_method"] == 'Proximal_anno')]
             Proximal_Distal['abs_bin'] = abs(Proximal_Distal['Peak_bin'])
@@ -193,4 +200,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance=args.CLOSE_PROMOTER_DISTANCE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance=args.CLOSE_PROMOTER_DISTANCE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
