@@ -37,7 +37,7 @@ def differential_expression_associated_peaks(annotated_peaks, expression, prefix
   expression.columns = ['Gene_log2FC', 'Gene_padj']
 
   #Adding gene stats to annotated peaks
-  annotated_peaks_expression = annotated_peaks.reset_index().merge(expression, how='left', left_on='Gene', right_on='symbol').set_index('Peak')
+  annotated_peaks_expression = annotated_peaks.reset_index().merge(expression, how='left', left_on='Gene', right_index=True).set_index('Peak')
 
   #Finding differntial peaks associated with changes in expression (sepeartion based on.annotation proximal/distal and activating/prepressive)
   annotated_peaks_expression_proximal_activating = annotated_peaks_expression[(annotated_peaks_expression.Annotation_method.isin(['Proximal_anno'])) & (annotated_peaks_expression.padj < padj) & (annotated_peaks_expression.Gene_padj < expression_padj) & (((annotated_peaks_expression.log2FC > log2FC) & (annotated_peaks_expression.Gene_log2FC > expression_log2FC)) | ((annotated_peaks_expression.log2FC < -log2FC) & (annotated_peaks_expression.Gene_log2FC < -expression_log2FC)))]
