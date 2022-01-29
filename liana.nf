@@ -547,6 +547,7 @@ val sample from ch_t_3.sample.collect().map{ it2 -> it2.join(' ')}
 val network_mode from Channel.value(params.network_mode)
 val complete from Channel.value(params.complete)
 val promoter_promoter from Channel.value(params.promoter_promoter)
+val network_distal_only from Channel.value(params.network_distal_only)
 
 //Multiple mode specific
 val upset_plot from Channel.value(params.upset_plot)
@@ -585,17 +586,17 @@ path "UpSet_${prefix}_interactions_Distal_genes.txt" optional true into ch_upset
 script:
 if (params.mode == 'basic')
   """
-  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete}
+  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete} --network_distal_only ${network_distal_only}
   """
 
 else if (params.mode == 'multiple')
   """
-  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete}
+  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only}
   """
 
 else if (params.mode == 'differential')
   """
-  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete}
+  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete} --network_distal_only ${network_distal_only}
   """
 }
 

@@ -70,7 +70,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     Peak_overlap_2.columns = ['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID_Proximal', 'Refseq_Proximal','Ensembl_Proximal', 'Gene_Proximal', 'InteractionID',  'Anchor_Overlap_Chr', 'Anchor_Overlap_Start', 'Anchor_Overlap_End','Anchor_Interaction_Chr', 'Anchor_Interaction_Start', 'Anchor_Interaction_End', 'Interaction_score', 'TSS_bin_distance', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Anchor_Overlap_TSS', 'Promoter_bin', 'Anchor_Overlap']
     Peak_overlap_merge = pd.concat([Peak_overlap_1, Peak_overlap_2], axis=0).sort_index()
 
-    # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or PLAC-seq based annotation
+    # Create a new column that specify type of annotation for each peak: Promoter, proximal annotation (Homer) or interactuion-based annotation
     Peak_overlap_merge['Peak_type'] = np.where((Peak_overlap_merge['Distance_to_TSS'] >= -promoter_start) & (Peak_overlap_merge['Distance_to_TSS'] <= promoter_end), 'Promoter', (np.where(abs(Peak_overlap_merge['Distance_to_TSS']) <= interaction_threshold, 'Proximal', 'Distal')))
 
     # Extrating promoter and proximity annotated peak, adding Q_value column (for filtering) and renaming columns
@@ -115,10 +115,11 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
 
     # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
-    Proximal_Distal=Proximal_Distal.merge(promoter_pos["TSS_start"], left_on='Refseq', right_index=True, how = 'left')
-    Proximal_Distal["Distance_to_TSS"] = ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS_start
-    Proximal_Distal=Proximal_Distal.drop(columns=['TSS_start'])
-
+    promoter_pos["TSS"] = (promoter_pos.TSS_start+promoter_pos.TSS_end)/2
+    Proximal_Distal=Proximal_Distal.merge(promoter_pos.loc[:,["TSS", "TSS_strand"]], left_on='Refseq', right_index=True, how = 'left')
+    Proximal_Distal["Distance_to_TSS"] = np.where(Proximal_Distal['TSS_strand'] ==0, ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS, -(((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS))
+    Proximal_Distal=Proximal_Distal.drop(columns=['TSS',"TSS_strand"])
+    
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes
     if (mode=='basic' or mode=='multiple'):
