@@ -214,12 +214,12 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
         if promoter_promoter =="true":
           Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
                                         (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
-                                           (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
+                                           (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
                                               (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
         else:
           Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_g['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_g['Source']), 'Factor',
                                       (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
-                                         (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Target'])  | Nodes['Node'].isin(Factor_Promoter_filt_g['Target']), 'Promoter',
+                                         (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Source']), 'Promoter',
                                             (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
     elif network_mode == "factorgenes":
     # Specifying node type for all nodes that are associated with selected genes
