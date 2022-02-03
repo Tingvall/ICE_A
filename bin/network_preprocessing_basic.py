@@ -17,7 +17,7 @@ argParser.add_argument('INTERACTIONS_ANNO', help="Annotated, not aggregated inte
 argParser.add_argument('--genes', dest='GENES', help="Text file specifying genes for filtering.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
 argParser.add_argument('--sample', dest="SAMPLE", help="Name of sample.")
-argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes)." , choices=['all', 'factor', 'genes'])
+argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes)." , choices=['all', 'factor', 'genes', 'factorgenes', 'factorexpression'])
 argParser.add_argument('--promoter_promoter', dest="PROMOTER_PROMOTER", help="If set to true, promoter-promoter interactions included in network (default: false).", choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
 argParser.add_argument('--network_distal_only', dest="NETWORK_DISTAL_ONLY", help="If true, only distal factor binding are shown in the netork.", choices=['true', 'false'])
@@ -87,7 +87,7 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
     Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
 
     # Filtering of edges based on network mode
-    if (network_mode == "factor" or network_mode == "genes"):
+    if (network_mode == "factor" or network_mode == "factorgenes"):
     #Filter edges based on factor
         Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
         if promoter_promoter =="true":
@@ -102,28 +102,37 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
             else:
                 Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Target'])]
 
-        if network_mode == "genes":
+        if network_mode == "factorgenes":
         #Filter edges based on gene
             genes = pd.read_table(genes, header=None)
             if promoter_promoter =="true":
                 if network_distal_only=="true":
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
                 else:
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
             else:
                 if network_distal_only=="true":
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']))]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']))]
                 else:
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']))]
-            Distal_Promoter_filt_g = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g['Source'])]
-            Factor_Distal_filt_g = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g['Source'])]
-            Factor_Promoter_filt_g = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']))]
+            Distal_Promoter_filt_fg = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g['Source'])]
+            Factor_Distal_filt_fg = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_fg['Source'])]
+            Factor_Promoter_filt_fg = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_fg['Source'])]
             if promoter_promoter =="true":
-                Promoter_Promoter_filt_g = Promoter_Promoter_filt_f[(Promoter_Promoter_filt_f['Source'].isin(Promoter_Gene_filt_g['Source']) & Promoter_Promoter_filt_f['Target'].isin(Factor_Promoter_filt_g['Source'])) | (Promoter_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g['Source']) & Promoter_Promoter_filt_f['Source'].isin(Factor_Promoter_filt_g['Source']))]
+                Promoter_Promoter_filt_fg = Promoter_Promoter_filt_f[(Promoter_Promoter_filt_f['Source'].isin(Promoter_Gene_filt_fg['Source']) & Promoter_Promoter_filt_f['Target'].isin(Factor_Promoter_filt_fg['Source'])) | (Promoter_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_fg['Source']) & Promoter_Promoter_filt_f['Source'].isin(Factor_Promoter_filt_fg['Source']))]
                 if network_distal_only=="true":
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_g[Promoter_Gene_filt_g['Source'].isin(Distal_Promoter_filt_g['Target']) | Promoter_Gene_filt_g['Source'].isin(Promoter_Promoter_filt_g['Source']) | Promoter_Gene_filt_g['Source'].isin(Promoter_Promoter_filt_g['Target'])]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_fg[Promoter_Gene_filt_fg['Source'].isin(Distal_Promoter_filt_fg['Target']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Source']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Target'])]
                 else:
-                    Promoter_Gene_filt_g = Promoter_Gene_filt_g[Promoter_Gene_filt_g['Source'].isin(Factor_Promoter_filt_g['Target']) | Promoter_Gene_filt_g['Source'].isin(Distal_Promoter_filt_g['Target']) | Promoter_Gene_filt_g['Source'].isin(Promoter_Promoter_filt_g['Source']) | Promoter_Gene_filt_g['Source'].isin(Promoter_Promoter_filt_g['Target'])]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_fg[Promoter_Gene_filt_fg['Source'].isin(Factor_Promoter_filt_fg['Target']) | Promoter_Gene_filt_fg['Source'].isin(Distal_Promoter_filt_fg['Target']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Source']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Target'])]
+
+    elif network_mode == "genes":
+        #Filter edges based on gene
+        genes = pd.read_table(genes, header=None)
+        Promoter_Gene_filt_g = Promoter_Gene[Promoter_Gene['Target'].isin(genes.iloc[:,0])]
+        Promoter_Promoter_filt_g = Promoter_Promoter[Promoter_Promoter['Source'].isin(Promoter_Gene_filt_g['Source']) | Promoter_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+        Distal_Promoter_filt_g = Distal_Promoter[Distal_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+        Factor_Promoter_filt_g = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g['Source'])]
+        Factor_Distal_filt_g = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g['Source'])]
 
     ### Creating edge table for cytoscape
     if network_mode == "all":
@@ -146,16 +155,22 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
 
     elif network_mode == "genes":
         if promoter_promoter =="true":
+          Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+        else:
+          Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+
+    elif network_mode == "factorgenes":
+        if promoter_promoter =="true":
             if network_distal_only=="true":
-                Factor_Promoter_filt_g_2 = Factor_Promoter_filt_g[Factor_Promoter_filt_g['Target'].isin(Promoter_Promoter_filt_g["Target"]) | Factor_Promoter_filt_g['Target'].isin(Promoter_Promoter_filt_g["Source"])]
-                Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g_2, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+                Factor_Promoter_filt_fg_2 = Factor_Promoter_filt_fg[Factor_Promoter_filt_fg['Target'].isin(Promoter_Promoter_filt_fg["Target"]) | Factor_Promoter_filt_fg['Target'].isin(Promoter_Promoter_filt_fg["Source"])]
+                Edges =  Factor_Distal_filt_fg.append([Factor_Promoter_filt_fg_2, Distal_Promoter_filt_fg, Promoter_Promoter_filt_fg, Promoter_Gene_filt_fg]).drop_duplicates()
             else:
-                Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+                Edges =  Factor_Distal_filt_fg.append([Factor_Promoter_filt_fg, Distal_Promoter_filt_fg, Promoter_Promoter_filt_fg, Promoter_Gene_filt_fg]).drop_duplicates()
         else:
             if network_distal_only=="true":
-                Edges =  Factor_Distal_filt_g.append([Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+                Edges =  Factor_Distal_filt_fg.append([Distal_Promoter_filt_fg, Promoter_Gene_filt_fg]).drop_duplicates()
             else:
-                Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
+                Edges =  Factor_Distal_filt_fg.append([Factor_Promoter_filt_fg, Distal_Promoter_filt_fg, Promoter_Gene_filt_fg]).drop_duplicates()
 
       Edges.to_csv('Network_Edges_' + prefix + '_interactions.txt', index=False, sep='\t' )
 
@@ -191,6 +206,21 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
                                       (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
 
     elif network_mode == "genes":
+        # Specifying node type for all nodes that are associated with selected genes
+        Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
+        Nodes.columns=['Node']
+        if promoter_promoter =="true":
+          Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_fg['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_fg['Source']), 'Factor',
+                                        (np.where(Nodes['Node'].isin(Distal_Promoter_filt_fg['Source']), 'Distal',
+                                           (np.where(Nodes['Node'].isin(Distal_Promoter_filt_fg['Target']) | Nodes['Node'].isin(Promoter_Promoter_filt_fg['Source']) | Nodes['Node'].isin(Promoter_Promoter_filt_g['Target']), 'Promoter',
+                                              (np.where(Nodes['Node'].isin(Promoter_Gene_filt_fg['Target']), 'Gene', np.nan)))))))
+        else:
+          Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_fg['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_fg['Source']), 'Factor',
+                                      (np.where(Nodes['Node'].isin(Distal_Promoter_filt_fg['Source']), 'Distal',
+                                         (np.where(Nodes['Node'].isin(Distal_Promoter_filt_fg['Target'])| Nodes['Node'].isin(Promoter_Promoter_filt_fg['Source']) , 'Promoter',
+                                            (np.where(Nodes['Node'].isin(Promoter_Gene_filt_fg['Target']), 'Gene', np.nan)))))))
+
+    elif network_mode == "factorgenes":
     # Specifying node type for all nodes that are associated with selected genes
         Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
         Nodes.columns=['Node']
