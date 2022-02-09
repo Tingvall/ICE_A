@@ -117,9 +117,10 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
     promoter_pos["TSS"] = (promoter_pos.TSS_start+promoter_pos.TSS_end)/2
     Proximal_Distal=Proximal_Distal.merge(promoter_pos.loc[:,["TSS", "TSS_strand"]], left_on='Refseq', right_index=True, how = 'left')
-    Proximal_Distal["Distance_to_TSS"] = np.where(Proximal_Distal['TSS_strand'] ==0, ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS, -(((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS))
-    Proximal_Distal=Proximal_Distal.drop(columns=['TSS',"TSS_strand"])
-    
+    Proximal_Distal["Distance_to_TSS_int"] = np.where(Proximal_Distal['TSS_strand'] ==0, ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS, np.where(Proximal_Distal['TSS_strand'] ==1,-(((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS),np.nan))
+    Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS'] = Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS_int']
+    Proximal_Distal=Proximal_Distal.drop(columns=['TSS',"TSS_strand", "Distance_to_TSS_int"])
+
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes
     if (mode=='basic' or mode=='multiple'):

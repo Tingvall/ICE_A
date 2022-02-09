@@ -21,7 +21,7 @@ option_list <- list(make_option(c("--nodes"), type="character", default='NULL', 
                     make_option(c("--expression_log2FC"), type="double", default='NULL', help="Log2FC column for differential expression.", metavar="value"),
                     make_option(c("--expression_padj"), type="double", default='NULL', help="Padj column for differential expression.", metavar="character"),
                     make_option(c("--mode"), type="character", default='NULL', help="Define which mode to run the pipeline in. The options are basic (default), multiple or differential", metavar="character"),
-                    make_option(c("--network_mode"), type="character", default='NULL', help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes).", metavar="value"),
+                    make_option(c("--network_mode"), type="character", default='NULL', help="Defines mode network. Options are a (all interaction in the 2D-bed file), f (all interaction with at least on peak overlap either anchor point), g (interactions associates with a gene list, provided by --genes) or fg (combiantion of option f & g). DIfferntial mode specific options e (filtering on differetial expression), fe (combination of e and f) or d (similar to option f but only differntial peak included) are avavilable.", metavar="value"),
                     make_option(c("--use_peakscore"), type="character", default='NULL', help="If set to true, peak scores will be used to set edge width in network visualization. Default: false.", metavar="character"),
                     make_option(c("--outdir"), type="character", default="./", help="Path for output files", metavar="path"))
 
@@ -123,7 +123,7 @@ exportNetwork("Network.xgmml", type= 'xGMML')
 #exportImage(paste(opt$outdir, "/Network.pdf", sep=""), 'PDF')
 #exportNetwork(paste(opt$outdir, "/Network.xgmml", sep=""), type= 'xGMML')
 
-if (mode=="differential" & network_mode=="differential"){
+if (mode=="differential" & network_mode=="d"){
 #Up
   up_nodes <- read.table(opt$nodes_up, header=TRUE, sep="\t", col.names=c("id", "type", "padj", "log2FC"))
   up_edges <- read.table(opt$edges_up, header=TRUE, sep="\t", col.names=c("source", "target", "score", "type"))

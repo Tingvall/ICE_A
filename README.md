@@ -111,8 +111,12 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 |`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
 |`--binsize` | Bin size used for interaction anchor points (default: 5000). |
 |`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
-|`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin. |
-|`--close_peaks_distance` | Specify distance for peak annoation with close interaction. If --close_peaks_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 1. |
+|`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are overlap (interactions that overlap with peak), bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: overlap. |
+|`--close_peaks_distance` | Specify distance for peak annotation with close interaction. If --close_peaks_type is bin the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 0. |
+|`--close_promoter_type` | Specifies how to handle interactions close to promoters. Options are overlap (interactions that overlap with promoter regions specified by promoter start/end), bin (based on number of bins) or distance (distance from promoter start/end to bin). Default: overlap. |
+|`--close_promoter_bin` | If --close_promoter_type is bin, the option specifies number of bins +/- the overlapping bin. Default: 0. |
+|`--close_promoter_start` | If --close_promoter_type is distance, the option specifies distance upstream of promoter to close interaction. Default: 2500.|
+|`--close_promoter_end` | If --close_promoter_type is distance, the option specifies distance downstream of promoter to close interaction. Default: 2500. |
 | `--prefix` | Prefix used for interactions (default: PLACseq).|
 | `--interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
 | `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
@@ -120,7 +124,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
 | `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
-| `--network_mode` | Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by `--genes`). |
+| `--network_mode` | Defines mode network. Options are a (all interaction in the 2D-bed file), f (all interaction with at least on peak overlap either anchor point), g (interactions associates with a gene list, provided by `--genes`) or fg (combination of option f and g). In differential mode, the options e (filter on differetially expressed genes) or d (filter on differential peaks) are also available.|
 | `--promoter_promoter` | If set to true, promoter-promoter interactions included in network (default: false). |
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
 | `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
