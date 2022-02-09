@@ -600,7 +600,7 @@ else if (params.mode == 'differential')
   """
 }
 
-if ({params.network | params.complete} && params.network_mode !="differential" ){
+if ({params.network | params.complete} && params.network_mode !="d" ){
   ch_nodes_up = file("No_nodes_up")
   ch_nodes_down = file("No_nodes_down")
   ch_edges_up = file("No_edges_up")

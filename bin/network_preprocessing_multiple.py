@@ -16,7 +16,7 @@ argParser.add_argument('INTERACTIONS_ANNO_AGG', help="Annotated and aggregated i
 argParser.add_argument('INTERACTIONS_ANNO', help="Annotated, not aggregated interactions")
 argParser.add_argument('--genes', dest='GENES', help="Text file specifying genes for filtering.")
 argParser.add_argument('--prefix', dest="PREFIX", help="Prefix for output file.")
-argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are all (all interaction in the 2D-bed file), factor (all interaction with at least on peak overlap either anchor point) or genes (interactions associates with a gene list, provided by --genes)." , choices=['all', 'factor', 'genes', 'factorgenes', 'factorexpression'])
+argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode network. Options are a (all interaction in the 2D-bed file), f (all interaction with at least on peak overlap either anchor point),g (interactions associates with a gene list, provided by --genes) or fg (combiantion of option f & g)." , choices=['a', 'f', 'g', 'fg'])
 argParser.add_argument('--promoter_promoter', dest="PROMOTER_PROMOTER", help="If set to true, promoter-promoter interactions included in network (default: false).", choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
 argParser.add_argument('--network_distal_only', dest="NETWORK_DISTAL_ONLY", help="If true, only distal factor binding are shown in the netork.", choices=['true', 'false'])
@@ -87,7 +87,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
 
     # Filtering of edges based on network mode
-    if (network_mode == "factor" or network_mode == "factorgenes"):
+    if (network_mode == "f" or network_mode == "fg"):
     #Filter edges based on factor
         Distal_Promoter_filt_f = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
         if promoter_promoter =="true":
@@ -102,7 +102,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
             else:
                 Promoter_Gene_filt_f = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Target'])]
 
-        if network_mode == "factorgenes":
+        if network_mode == "fg":
             #Filter edges based on gene
             genes = pd.read_table(genes, header=None)
             if promoter_promoter =="true":
@@ -125,7 +125,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
                 else:
                     Promoter_Gene_filt_fg = Promoter_Gene_filt_fg[Promoter_Gene_filt_fg['Source'].isin(Factor_Promoter_filt_fg['Target']) | Promoter_Gene_filt_fg['Source'].isin(Distal_Promoter_filt_fg['Target']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Source']) | Promoter_Gene_filt_fg['Source'].isin(Promoter_Promoter_filt_fg['Target'])]
 
-    elif network_mode == "genes":
+    elif network_mode == "g":
         #Filter edges based on gene
         genes = pd.read_table(genes, header=None)
         Promoter_Gene_filt_g = Promoter_Gene[Promoter_Gene['Target'].isin(genes.iloc[:,0])]
@@ -136,13 +136,13 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
         Factor_Distal_filt_g = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g['Source'])]
 
     ### Creating edge table for cytoscape
-    if network_mode == "all":
+    if network_mode == "a":
         if promoter_promoter =="true":
             Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Promoter, Promoter_Gene]).drop_duplicates()
         else:
             Edges = Factor_Distal.append([Factor_Promoter, Distal_Promoter, Promoter_Gene]).drop_duplicates()
 
-    elif network_mode == "factor":
+    elif network_mode == "f":
         if promoter_promoter =="true":
             if network_distal_only=="true":
                 Edges =  Factor_Distal.append([Distal_Promoter_filt_f, Promoter_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
@@ -154,13 +154,13 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
             else:
                 Edges =  Factor_Distal.append([Factor_Promoter, Distal_Promoter_filt_f, Promoter_Gene_filt_f]).drop_duplicates()
 
-    elif network_mode == "genes":
+    elif network_mode == "g":
         if promoter_promoter =="true":
           Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
         else:
           Edges =  Factor_Distal_filt_g.append([Factor_Promoter_filt_g, Distal_Promoter_filt_g, Promoter_Gene_filt_g]).drop_duplicates()
 
-    elif network_mode == "factorgenes":
+    elif network_mode == "fg":
         if promoter_promoter =="true":
             if network_distal_only=="true":
                 Factor_Promoter_filt_fg_2 = Factor_Promoter_filt_fg[Factor_Promoter_filt_fg['Target'].isin(Promoter_Promoter_filt_fg["Target"]) | Factor_Promoter_filt_fg['Target'].isin(Promoter_Promoter_filt_fg["Source"])]
@@ -177,22 +177,22 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
 
     ### Creating node table for cytoscape
-    if network_mode == "all":
+    if network_mode == "a":
     #Specifying node type for all nodes
         Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
         Nodes.columns=['Node']
         if promoter_promoter =="true":
             Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
-                                       (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) | Nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
+                                       (np.where(Nodes['Node'].isin(Promoter_Gene['Source']) | Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Promoter_Promoter['Source']) | Nodes['Node'].isin(Promoter_Promoter['Target']), 'Promoter',
                                           (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
         else:
             Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal['Source']) | Nodes['Node'].isin(Factor_Promoter['Source']), 'Factor',
                                   (np.where(Nodes['Node'].isin(Distal_Promoter['Source']), 'Distal',
-                                     (np.where(Nodes['Node'].isin(Distal_Promoter['Target']) | nodes['Node'].isin(Factor_Promoter['Target']), 'Promoter',
+                                     (np.where(Nodes['Node'].isin(Promoter_Gene['Source']) | Nodes['Node'].isin(Distal_Promoter['Target']) | Nodes['Node'].isin(Factor_Promoter['Target']), 'Promoter',
                                         (np.where(Nodes['Node'].isin(Promoter_Gene['Target']), 'Gene', np.nan)))))))
 
-    elif network_mode == "factor":
+    elif network_mode == "f":
     # Specifying node type for all nodes that are associated with factor binding
         Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
         Nodes.columns=['Node']
@@ -207,7 +207,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
                                     (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Source']) | Nodes['Node'].isin(Distal_Promoter_filt_f['Target']) | Nodes['Node'].isin(Factor_Promoter['Target']), 'Promoter',
                                       (np.where(Nodes['Node'].isin(Promoter_Gene_filt_f['Target']), 'Gene', np.nan)))))))
 
-    elif network_mode == "genes":
+    elif network_mode == "g":
         # Specifying node type for all nodes that are associated with selected genes
         Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
         Nodes.columns=['Node']
@@ -221,7 +221,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
                                       (np.where(Nodes['Node'].isin(Distal_Promoter_filt_g['Source']), 'Distal',
                                          (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Source']), 'Promoter',
                                             (np.where(Nodes['Node'].isin(Promoter_Gene_filt_g['Target']), 'Gene', np.nan)))))))
-    elif network_mode == "factorgenes":
+    elif network_mode == "fg":
     # Specifying node type for all nodes that are associated with selected genes
         Nodes = pd.DataFrame(pd.unique(Edges[['Source', 'Target']].dropna().values.ravel('K')))
         Nodes.columns=['Node']
