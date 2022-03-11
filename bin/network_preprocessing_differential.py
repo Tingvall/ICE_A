@@ -173,7 +173,7 @@ def network_preprocessing_differential(interactions_annotated, interactions_anno
                 if network_distal_only=="true":
                     Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
                 else:
-                    Promoter_Gene_filt_gf = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
+                    Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Source']) | Promoter_Gene_filt_f['Source'].isin(Promoter_Promoter_filt_f['Target']))]
             else:
                 if network_distal_only=="true":
                     Promoter_Gene_filt_fg = Promoter_Gene_filt_f[(Promoter_Gene_filt_f['Target'].isin(genes.iloc[:,0])) & (Promoter_Gene_filt_f['Source'].isin(Distal_Promoter_filt_f['Target']))]
