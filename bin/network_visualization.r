@@ -42,6 +42,7 @@ if (mode=="differential"){
 
 edges[,"interaction"] <- "interacts"
 edges[,"name"] <- paste(edges$source, "(interacts)", edges$target, sep=" ")
+edges[mapply(is.infinite, edges)] <- NA
 createNetworkFromDataFrames(nodes,edges, title="Network", collection="Networks" )
 
 #Creating a style for the network

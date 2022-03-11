@@ -302,7 +302,7 @@ if (params.skip_anno) {
       """
       annotatePeaks.pl $peak_file $genome > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/plac_anno_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/liana_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
 
@@ -397,6 +397,7 @@ else{
     val close_promoter_distance_start from Channel.value(params.close_promoter_distance_start)
     val close_promoter_distance_end from Channel.value(params.close_promoter_distance_end)
     val close_promoter_bin from Channel.value(params.close_promoter_bin)
+    val filter_close from Channel.value(params.filter_close)
 
     //Differntial mode specific
     path peak_differential from ch_peak_differential_1
@@ -419,7 +420,7 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance_start ${close_promoter_distance_start} --close_promoter_distance_end ${close_promoter_distance_end} --close_promoter_bin ${close_promoter_bin} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance_start ${close_promoter_distance_start} --close_promoter_distance_end ${close_promoter_distance_end} --close_promoter_bin ${close_promoter_bin} --filter_close ${filter_close} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
     """
 }
 

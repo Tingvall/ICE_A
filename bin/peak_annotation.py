@@ -33,6 +33,7 @@ argParser.add_argument('--close_promoter_type', dest="CLOSE_PROMOTER_TYPE", help
 argParser.add_argument('--close_promoter_distance_start', dest="CLOSE_PROMOTER_DISTANCE_START", help="Specify distance for interaction close to but not overlapping TSS, upstreams of TSS. Default: 2500.", type=int)
 argParser.add_argument('--close_promoter_distance_end', dest="CLOSE_PROMOTER_DISTANCE_END", help="Specify distance for interaction close to but not overlapping TSS, downstreams of TSS lf TSS. Default: 2500.", type=int)
 argParser.add_argument('--close_promoter_bin', dest="CLOSE_PROMOTER_BIN", help="Specify distance for interaction close to but not overlapping TSS, upstream lf TSS if --close_promoter_type is bin. The option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from TSS to bin. Default: 1.", type=int)
+argParser.add_argument('--filter_close', dest="FILTER_CLOSE", help="Depending on the close peak/promoter options, the same peak can be annotated to the same gene from interactions in neighboring bins. This options specifies how to handle this: no_filter (no filtering), peak (filter on peak_bin_distance firs and than TSS_bin_distance), tss (filter on TSS_bin_distance firs and than peak_bin_distance) or sum (sum of absolite values of peak_bin_distance and TSS_bin_distance). Default: no_filter",choices=['peak','tss', 'sum', 'no_filter'])
 
 # Differntial mode specific arguments
 argParser.add_argument('--peak_differential', dest='PEAK_DIFFERENTIAL', help="Path to textfile that contain log2FC and adjusted p-value from differential analysis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the arguments --log2FC_column and --padj column.")
@@ -45,7 +46,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, promoter_pos, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance_start, close_promoter_distance_end, close_promoter_bin, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, promoter_pos, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance_start, close_promoter_distance_end, close_promoter_bin, filter_close, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
 
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
@@ -121,6 +122,19 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS'] = Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS_int']
     Proximal_Distal=Proximal_Distal.drop(columns=['TSS',"TSS_strand", "Distance_to_TSS_int"])
 
+    # Filer for multiple annoation of the same peak to the same gene (result of close peak/bin options)
+    if filter_close == "peak":
+        Proximal_Distal =Proximal_Distal.sort_values(['Peak_bin_distance', 'TSS_bin_distance'], key=abs)
+        Proximal_Distal = Proximal_Distal.drop_duplicates(subset=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID', 'Refseq', 'Ensembl', 'Gene', 'Peak_type', 'Annotation_method', 'Interaction_score'], keep="first")
+    elif filter_close == "tss":
+        Proximal_Distal =Proximal_Distal.sort_values(['TSS_bin_distance', 'Peak_bin_distance'], key=abs)
+        Proximal_Distal = Proximal_Distal.drop_duplicates(subset=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID', 'Refseq', 'Ensembl', 'Gene', 'Peak_type', 'Annotation_method', 'Interaction_score'], keep="first")
+    elif filter_close == "sum":
+        Proximal_Distal["sum"]= abs(Proximal_Distal["Peak_bin_distance"])+abs(Proximal_Distal["TSS_bin_distance"])
+        Proximal_Distal =Proximal_Distal.sort_values('sum')
+        Proximal_Distal = Proximal_Distal.drop_duplicates(subset=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID', 'Refseq', 'Ensembl', 'Gene', 'Peak_type', 'Annotation_method', 'Interaction_score'], keep="first")
+        Proximal_Distal=Proximal_Distal.drop(columns=['sum'])
+
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes
     if (mode=='basic' or mode=='multiple'):
@@ -194,9 +208,9 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
       Proximal_Distal_differential =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_differential.to_csv(peak_name + '_'+prefix + '_annotated.txt', index=False, sep='\t' )
-      Proximal_Distal_up =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
+      Proximal_Distal_up =Proximal_Distal_up.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_up.to_csv(peak_name + '_' + prefix + '_annotated_up.txt', index=False, sep='\t' )
-      Proximal_Distal_down =Proximal_Distal_differential.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
+      Proximal_Distal_down =Proximal_Distal_down.dropna(subset=['EntrezID','Refseq','Ensembl', 'Gene'], how='all')
       Proximal_Distal_down.to_csv(peak_name + '_' + prefix + '_annotated_down.txt', index=False, sep='\t' )
       pd.DataFrame(Genelist).to_csv(peak_name + '_' + prefix + '_annotated_genelist.txt', index=False, header=False,sep='\t' )
       pd.DataFrame(Genelist_up).to_csv(peak_name + '_' + prefix + '_annotated_genelist_up.txt', index=False, header=False,sep='\t' )
@@ -204,4 +218,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, filter_close=args.FILTER_CLOSE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
