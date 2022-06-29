@@ -295,13 +295,13 @@ if (params.skip_anno) {
 
       output:
       tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
-      tuple val(peak_name), file("${peak_name}.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
+      tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
       path "promoter_positions.txt" into ch_promoter_positions
 
       script:
       """
       annotatePeaks.pl $peak_file $genome > ${peak_name}_anno.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}.bed
+      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/liana_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
