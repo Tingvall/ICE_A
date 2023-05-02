@@ -12,7 +12,7 @@ def helpMessage() {
     --genome                        Specification of genome for annotation (e.g. mm10).
 
   Optional input:
-    --genes [file]                  Path to textfile with gene names (specify???), that is used for filtering of interactions associated with the specified genes. nly used when the option --filtering_genes is specified or if --network_mode is set to genes.
+    --genes [file]                  Path to textfile with gene names, that is used for filtering of interactions associated with the specified genes. nly used when the option --filtering_genes is specified or if --network_mode is set to genes.
     --bed2D_anno [file]             Specifies path to annotated 2D-bed file if --skip_anno is used.
 
   Arguments - General:
@@ -300,9 +300,15 @@ if (params.skip_anno) {
 
       script:
       """
-      annotatePeaks.pl $peak_file $genome > ${peak_name}_anno.txt
+      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+      then
+        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+      else
+        cp $peak_file ${peak_name}_for_anno.bed
+      fi
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/liana_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/plac_anno_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
 
@@ -354,15 +360,17 @@ if (params.skip_anno) {
     else if (params.close_peak_type == 'bin')
       """
       awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
-      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
-      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
+      awk '\$2<0 {\$2=0} 1' OFS='\t' ${peak_name}_extended.bed > ${peak_name}_extended_nonneg.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended_nonneg.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended_nonneg.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
       """
 
     else if (params.close_peak_type == 'distance')
       """
       awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $peak_bed > ${peak_name}_extended.bed
-      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
-      bedtools intersect -wa -wb -a ${peak_name}_extended.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
+      awk '\$2<0 {\$2=0} 1' OFS='\t' ${peak_name}_extended.bed > ${peak_name}_extended_nonneg.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended_nonneg.bed -b $bed2D_anno_split_anchor1 > ${peak_name}_anchor_1.bed
+      bedtools intersect -wa -wb -a ${peak_name}_extended_nonneg.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
       """
   }
 
