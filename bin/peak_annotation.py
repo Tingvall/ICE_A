@@ -81,13 +81,18 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
     # Extracting interaction annotated peaks
     Distal = Peak_overlap_merge.dropna(subset=['InteractionID'])
-    # Create two new columns for close interaction anntation: peak_bin_distance (distance between peak and bin center (negative value means peak is upstream of interaction)) and bin (+/- number of bins from peak to bin with interaction)
+    # Create two new columns for close interaction anntation: peak_bin_distance (distance between peak center and bin (negative value means peak is upstream of interaction)) and bin (+/- number of bins from peak to bin with interaction)
     Distal['Peak_bin_distance'] = (Distal.Start+((Distal.End-Distal.Start)/2)) - (Distal.Anchor_Overlap_Start+((Distal.Anchor_Overlap_End-Distal.Anchor_Overlap_Start)/2))
     Distal['Peak_bin'] = round(Distal.Peak_bin_distance/binsize)
+    Distal['Peak_bin_distance'] = np.where(Distal['Peak_bin_distance'] < -binsize/2, Distal['Peak_bin_distance'] + binsize/2, (np.where(Distal['Peak_bin_distance'] > binsize/2, Distal['Peak_bin_distance'] - binsize/2, 0)))
 
     #Filtering based on close peak/promoter distance
-    if close_peak_type == 'bin':
+    if close_peak_type == 'overlap':
+        Distal = Distal.loc[(abs(Distal['Peak_bin_distance'])-((Distal.End-Distal.Start)/2)) < 0,:]
+    elif close_peak_type == 'bin':
         Distal = Distal.loc[~(abs(Distal['Peak_bin']) > close_peak_distance),:]
+    elif close_peak_type == 'distance':
+        Distal = Distal.loc[~(abs(Distal['Peak_bin_distance']) > close_peak_distance),:]
 
     if close_promoter_type == 'overlap':
         Distal = Distal.loc[(((Distal['TSS_bin_distance'] <= 0) & (Distal['TSS_bin_distance'] >= -(binsize/2+promoter_end))) | ((Distal['TSS_bin_distance'] >= 0) & (Distal['TSS_bin_distance'] <= (binsize/2+promoter_start)))),['Chr', 'Start', 'End', 'Peak_score','Distance_to_TSS', 'EntrezID_Interaction', 'Refseq_Interaction','Ensembl_Interaction', 'Gene_Interaction', 'Peak_type', 'Peak_bin_distance', 'Peak_bin','Interaction_score', 'Promoter_bin','TSS_bin_distance']].drop_duplicates()
