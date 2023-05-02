@@ -25,8 +25,8 @@ argParser.add_argument('--multiple_anno', dest="MULTIPLE_ANNO", help="Defines ho
 argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
-argParser.add_argument('--close_peak_type', dest="close_peak_TYPE", help="Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.", choices=['overlap','bin', 'distance'])
-argParser.add_argument('--close_peak_distance', dest="close_peak_DISTANCE", help="Specify distance for peak annoation with close interaction. If --close_peak_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peak_type is distance it specifies distance from peak start/end to bin. Default: 1.", type=int)
+argParser.add_argument('--close_peak_type', dest="CLOSE_PEAK_TYPE", help="Specifies how to handle interactions close to peaks. Options are bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: bin.", choices=['overlap','bin', 'distance'])
+argParser.add_argument('--close_peak_distance', dest="CLOSE_PEAK_DISTANCE", help="Specify distance for peak annoation with close interaction. If --close_peak_type is bin (default) the option specifies number of bins +/- overlapping bin and if close_peak_type is distance it specifies distance from peak start/end to bin. Default: 1.", type=int)
 argParser.add_argument('--skip_promoter_promoter', dest="SKIP_PROMOTER_PROMOTER", help="SPecifies with interaction-based annotation of peaks located in promoter regions should be skiped (default: false).", choices=['true', 'false'])
 argParser.add_argument('--interaction_threshold', dest="INTERACTION_THRESHOLD", help="Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize).", type=int)
 argParser.add_argument('--close_promoter_type', dest="CLOSE_PROMOTER_TYPE", help="Specifies how to handle interactions close to promoter. Options are bin (based on number of bins) or distance (distance from TSS to bin). Default: bin.", choices=['overlap', 'bin', 'distance'])
@@ -118,8 +118,9 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
     Proximal_Distal['Start'] = Proximal_Distal['Start']-1
     if (skip_promoter_promoter=='true'):
-        Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
-
+        #Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
+        Proximal_Distal = Proximal_Distal.loc[~((Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')),:]
+         
     # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
     promoter_pos["TSS"] = (promoter_pos.TSS_start+promoter_pos.TSS_end)/2
     Proximal_Distal=Proximal_Distal.merge(promoter_pos.loc[:,["TSS", "TSS_strand"]], left_on='Refseq', right_index=True, how = 'left')
@@ -223,4 +224,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.close_peak_TYPE, close_peak_distance=args.close_peak_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, filter_close=args.FILTER_CLOSE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.CLOSE_PEAK_TYPE, close_peak_distance=args.CLOSE_PEAK_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, filter_close=args.FILTER_CLOSE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
