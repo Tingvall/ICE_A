@@ -308,7 +308,7 @@ if (params.skip_anno) {
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/plac_anno_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/liana_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
 
