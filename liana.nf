@@ -291,6 +291,7 @@ if (params.skip_anno) {
       input:
       tuple val(peak_name), path(peak_file) from ch_peaks_split
       val genome from Channel.value(params.genome)
+      val env from Channel.value(params.env)
 
 
       output:
@@ -308,7 +309,7 @@ if (params.skip_anno) {
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/plac_anno_env/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
   }
 
