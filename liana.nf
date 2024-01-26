@@ -240,15 +240,24 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
+    val gtf from Channel.value(params.gtf)
+
 
     output:
     path "${anchor1.baseName}_anno.txt" into ch_anchor1_anno       // Annotated anchor bed files
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
 
     script:
+    if (params.gtf == 'default')
     """
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
+    """
+
+    else
+    """
+    annotatePeaks.pl $anchor1 $genome -gtf $gtf > ${anchor1.baseName}_anno.txt
+    annotatePeaks.pl $anchor2 $genome -gtf $gtf > ${anchor2.baseName}_anno.txt
     """
 }
 
@@ -292,6 +301,7 @@ if (params.skip_anno) {
       tuple val(peak_name), path(peak_file) from ch_peaks_split
       val genome from Channel.value(params.genome)
       val env from Channel.value(params.env)
+      val gtf from Channel.value(params.gtf)
 
 
       output:
@@ -300,6 +310,7 @@ if (params.skip_anno) {
       path "promoter_positions.txt" into ch_promoter_positions
 
       script:
+      if (params.gtf == 'default')
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -308,6 +319,19 @@ if (params.skip_anno) {
         cp $peak_file ${peak_name}_for_anno.bed
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
+      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      """
+
+      else
+      """
+      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+      then
+        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+      else
+        cp $peak_file ${peak_name}_for_anno.bed
+      fi
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $gtf > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
