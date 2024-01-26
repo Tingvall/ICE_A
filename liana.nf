@@ -342,7 +342,7 @@ if (params.skip_anno) {
       else
         cp $peak_file ${peak_name}_for_anno.bed
       fi
-      awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\x22"\$1"\x22"}' $tss > tss.gtf
+      // awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id "\\x22"\$1"\\x22"}' $tss > tss.gtf
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp $tss promoter_positions.txt
