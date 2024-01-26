@@ -344,9 +344,9 @@ if (params.skip_anno) {
         cp $peak_file ${peak_name}_for_anno.bed
       fi
       awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      awk -v OFS='\t' '{if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}'
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
+      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
+      awk -v OFS='\t' '{if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno.txt
       cp $tss promoter_positions.txt
       """
   }
