@@ -267,7 +267,6 @@ process ANNOTATE_INTERACTION {
 
     else
     """
-    #awk -v OFS='\t' '{print \$2, "custom", "exon", \$3, \$4, ".", \$5, ".", "transcript_id ""\x22"\$1"\x22"}' $tss > tss.gtf
     annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno.txt
     """
