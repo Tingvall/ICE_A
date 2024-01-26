@@ -246,9 +246,16 @@ process ANNOTATE_INTERACTION {
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
 
     script:
+    if (params.gtf == 'default')
     """
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
+    """
+
+    else
+    """
+    annotatePeaks.pl $anchor1 $genome -gtf $params.gtf > ${anchor1.baseName}_anno.txt
+    annotatePeaks.pl $anchor2 $genome -gtf $params.gtf > ${anchor2.baseName}_anno.txt
     """
 }
 
@@ -300,6 +307,7 @@ if (params.skip_anno) {
       path "promoter_positions.txt" into ch_promoter_positions
 
       script:
+      if (params.gtf == 'default')
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -308,6 +316,19 @@ if (params.skip_anno) {
         cp $peak_file ${peak_name}_for_anno.bed
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
+      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      """
+
+      else
+      """
+      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+      then
+        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+      else
+        cp $peak_file ${peak_name}_for_anno.bed
+      fi
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $params.gtf > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
