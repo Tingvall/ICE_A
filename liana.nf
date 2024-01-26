@@ -267,8 +267,9 @@ process ANNOTATE_INTERACTION {
 
     else
     """
-    annotatePeaks.pl $anchor1 $genome -gtf $tss > ${anchor1.baseName}_anno.txt
-    annotatePeaks.pl $anchor2 $genome -gtf $tss > ${anchor2.baseName}_anno.txt
+    awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\x22"\$1"\x22"}' $tss > tss.gtf
+    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}_anno.txt
+    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno.txt
     """
 }
 
@@ -342,9 +343,10 @@ if (params.skip_anno) {
       else
         cp $peak_file ${peak_name}_for_anno.bed
       fi
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $tss > ${peak_name}_anno.txt
+      awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\x22"\$1"\x22"}' $tss > tss.gtf
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      cp $tss promoter_positions.txt
       """
   }
 
