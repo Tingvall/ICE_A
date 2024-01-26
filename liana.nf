@@ -85,6 +85,13 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
+if (params.tss != 'default') {
+  if (params.tss)     { ch_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
+}
+else {
+  ch_tss = file(params.tss)
+}
+ch_tss.into {ch_tss_1; ch_tss_2}
 
 if (params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
@@ -92,6 +99,7 @@ if (params.network_mode == 'genes') {
 else {
   ch_genes = file(params.genes)
 }
+
 
 if (params.mode == 'differential') {
   if (params.peak_differential)     { ch_peak_differential = Channel.fromPath(params.peak_differential, checkIfExists: true) } else { exit 1, 'Peak file log2FC and adjusted p-value not provided' }
@@ -129,6 +137,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS position: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -155,6 +164,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS position: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -183,6 +193,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS position: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -240,7 +251,7 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
-    val gtf from Channel.value(params.gtf)
+    path tss from ch_tss_1
 
 
     output:
@@ -248,7 +259,7 @@ process ANNOTATE_INTERACTION {
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
 
     script:
-    if (params.gtf == 'default')
+    if (params.tss == 'default')
     """
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
@@ -256,8 +267,8 @@ process ANNOTATE_INTERACTION {
 
     else
     """
-    annotatePeaks.pl $anchor1 $genome -gtf $gtf > ${anchor1.baseName}_anno.txt
-    annotatePeaks.pl $anchor2 $genome -gtf $gtf > ${anchor2.baseName}_anno.txt
+    annotatePeaks.pl $anchor1 $genome -gtf $tss > ${anchor1.baseName}_anno.txt
+    annotatePeaks.pl $anchor2 $genome -gtf $tss > ${anchor2.baseName}_anno.txt
     """
 }
 
@@ -301,7 +312,7 @@ if (params.skip_anno) {
       tuple val(peak_name), path(peak_file) from ch_peaks_split
       val genome from Channel.value(params.genome)
       val env from Channel.value(params.env)
-      val gtf from Channel.value(params.gtf)
+      path tss from ch_tss_2
 
 
       output:
@@ -310,7 +321,7 @@ if (params.skip_anno) {
       path "promoter_positions.txt" into ch_promoter_positions
 
       script:
-      if (params.gtf == 'default')
+      if (params.tss == 'default')
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -331,7 +342,7 @@ if (params.skip_anno) {
       else
         cp $peak_file ${peak_name}_for_anno.bed
       fi
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $gtf > ${peak_name}_anno.txt
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $tss > ${peak_name}_anno.txt
       awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
