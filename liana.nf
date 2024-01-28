@@ -268,8 +268,14 @@ process ANNOTATE_INTERACTION {
     else
     """
     awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
-    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}_anno.txt
-    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno.txt
+
+    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}__anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor1.baseName}__anno_noIDs.txt > ${anchor1.baseName}__anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor1.baseName}__anno_na_not_removed.txt > ${anchor1.baseName}_anno.txt
+
+    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}__anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor2.baseName}__anno_noIDs.txt > ${anchor2.baseName}__anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor2.baseName}__anno_na_not_removed.txt > ${anchor2.baseName}_anno.txt
     """
 }
 
