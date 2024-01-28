@@ -227,13 +227,13 @@ process BED2D_SPLIT {
     """
     if [ \$(head -n 1 $bed2D | awk '{print NF}') -ge 7 ]
     then
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
     else
-      awk -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
     fi
-    awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
     """
 }
 
@@ -267,7 +267,7 @@ process ANNOTATE_INTERACTION {
 
     else
     """
-    awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+    awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
     annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno.txt
     """
@@ -331,7 +331,7 @@ if (params.skip_anno) {
         cp $peak_file ${peak_name}_for_anno.bed
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
 
@@ -343,11 +343,11 @@ if (params.skip_anno) {
       else
         cp $peak_file ${peak_name}_for_anno.bed
       fi
-      awk -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+      awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
-      awk -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
-      awk -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
+      awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
+      awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
       cp $tss promoter_positions.txt
       """
   }
@@ -369,9 +369,9 @@ if (params.skip_anno) {
 
     script:
     """
-    awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$0}' $bed2D_anno > ${prefix}_index_anno.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$3,\$4,\$5,\$2 }}' ${prefix}_index_anno.bed >  ${prefix}_anchor1_anno.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
+    awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$0}' $bed2D_anno > ${prefix}_index_anno.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$3,\$4,\$5,\$2 }}' ${prefix}_index_anno.bed >  ${prefix}_anchor1_anno.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
     """
   }
 
