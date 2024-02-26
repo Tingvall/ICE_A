@@ -87,11 +87,13 @@ if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
 if (params.tss != 'default') {
   if (params.tss)     { ch_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
+    ch_tss.into {ch_tss_1; ch_tss_2}
 }
 else {
-  ch_tss = file(params.tss)
+  ch_tss_1 = file(params.tss)
+  ch_tss_2 = file(params.tss)
+
 }
-ch_tss.into {ch_tss_1; ch_tss_2}
 
 if (params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
