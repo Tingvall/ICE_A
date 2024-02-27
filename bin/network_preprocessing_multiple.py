@@ -244,6 +244,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
         Factor_Distal.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Distal.txt', index=False, sep='\t' )
 
     if filter_genes == 'true':
+        genes = pd.read_table(genes, header=None)
         Promoter_Gene_filt_f_org = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Target'])]
         Promoter_Gene_filt_g_org = Promoter_Gene_filt_f_org[(Promoter_Gene_filt_f_org['Target'].isin(genes.iloc[:,0]))]
         Distal_Promoter_filt_g_org = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
