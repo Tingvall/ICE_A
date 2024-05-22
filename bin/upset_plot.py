@@ -91,7 +91,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     circos_f.fillna(False,inplace=True)
 
     #Filter for interactions in distal-promoter list (promoter-promoter excluded)
-    distal_promoter = pd.read_table(distal_promoter)
+    distal_promoter = pd.read_table(distal_promoter, index_col=0)
     circos_f = circos_f[circos_f.index.isin(distal_promoter.index)]
     circos_f = circos_f.groupby(list(circos_f.columns)).size().to_frame('size').reset_index()
     circos_f.to_csv('Circos_peaks_' + prefix + '_interactions.txt', index=False, sep='\t' )
