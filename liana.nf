@@ -85,6 +85,15 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
+if (params.tss != 'default') {
+  if (params.tss)     { ch_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
+    ch_tss.into {ch_tss_1; ch_tss_2}
+}
+else {
+  ch_tss_1 = file(params.tss)
+  ch_tss_2 = file(params.tss)
+
+}
 
 if (params.network_mode == 'genes') {
   if (params.genes)     { ch_genes = Channel.fromPath(params.genes, checkIfExists: true) } else { exit 1, 'Genes not specified' }
@@ -92,6 +101,7 @@ if (params.network_mode == 'genes') {
 else {
   ch_genes = file(params.genes)
 }
+
 
 if (params.mode == 'differential') {
   if (params.peak_differential)     { ch_peak_differential = Channel.fromPath(params.peak_differential, checkIfExists: true) } else { exit 1, 'Peak file log2FC and adjusted p-value not provided' }
@@ -129,6 +139,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS positions: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -155,6 +166,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS positions: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -183,6 +195,7 @@ println ("""
         Reference genome: ${params.genome}
         Outdir: ${params.outdir}
         Peak file:  ${params.peaks}
+        TSS positions: ${params.tss}
         Proximity annotate unannotated distal regions: ${params.proximity_unannotated}
         Mode for multiple annotation of Peaks: ${params.multiple_anno}
 
@@ -216,13 +229,13 @@ process BED2D_SPLIT {
     """
     if [ \$(head -n 1 $bed2D | awk '{print NF}') -ge 7 ]
     then
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$${interaction_score_column} }' $bed2D > ${prefix}_index.bed
     else
-      awk -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
-      awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="Interaction_score"} FNR>1{a=1} {print \$1,\$2,\$3,\$4,\$5,\$6,a }' $bed2D > ${prefix}_index_noindex.bed
+      awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$1,\$2,\$3,\$4,\$5,\$6,\$7 }' ${prefix}_index_noindex.bed > ${prefix}_index.bed
     fi
-    awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1 }}' ${prefix}_index.bed >  ${prefix}_anchor1.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$5,\$6,\$7,\$1}}' ${prefix}_index.bed >  ${prefix}_anchor2.bed
     """
 }
 
@@ -240,7 +253,7 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
-    val gtf from Channel.value(params.gtf)
+    path tss from ch_tss_1
 
 
     output:
@@ -248,7 +261,7 @@ process ANNOTATE_INTERACTION {
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
 
     script:
-    if (params.gtf == 'default')
+    if (params.tss == 'default')
     """
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
@@ -256,8 +269,15 @@ process ANNOTATE_INTERACTION {
 
     else
     """
-    annotatePeaks.pl $anchor1 $genome -gtf $gtf > ${anchor1.baseName}_anno.txt
-    annotatePeaks.pl $anchor2 $genome -gtf $gtf > ${anchor2.baseName}_anno.txt
+    awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+
+    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}__anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor1.baseName}__anno_noIDs.txt > ${anchor1.baseName}__anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor1.baseName}__anno_na_not_removed.txt > ${anchor1.baseName}_anno.txt
+
+    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}__anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor2.baseName}__anno_noIDs.txt > ${anchor2.baseName}__anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor2.baseName}__anno_na_not_removed.txt > ${anchor2.baseName}_anno.txt
     """
 }
 
@@ -301,7 +321,7 @@ if (params.skip_anno) {
       tuple val(peak_name), path(peak_file) from ch_peaks_split
       val genome from Channel.value(params.genome)
       val env from Channel.value(params.env)
-      val gtf from Channel.value(params.gtf)
+      path tss from ch_tss_2
 
 
       output:
@@ -310,7 +330,7 @@ if (params.skip_anno) {
       path "promoter_positions.txt" into ch_promoter_positions
 
       script:
-      if (params.gtf == 'default')
+      if (params.tss == 'default')
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -319,7 +339,7 @@ if (params.skip_anno) {
         cp $peak_file ${peak_name}_for_anno.bed
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
       cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
 
@@ -331,9 +351,12 @@ if (params.skip_anno) {
       else
         cp $peak_file ${peak_name}_for_anno.bed
       fi
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf $gtf > ${peak_name}_anno.txt
-      awk -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
+      awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
+      awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
+      cp $tss promoter_positions.txt
       """
   }
 
@@ -354,9 +377,9 @@ if (params.skip_anno) {
 
     script:
     """
-    awk -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$0}' $bed2D_anno > ${prefix}_index_anno.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$3,\$4,\$5,\$2 }}' ${prefix}_index_anno.bed >  ${prefix}_anchor1_anno.bed
-    awk -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
+    awk -v FS='\t' -v OFS='\t' 'FNR==1{a="index"} FNR>1{a=NR-1} {print a,\$0}' $bed2D_anno > ${prefix}_index_anno.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$3,\$4,\$5,\$2 }}' ${prefix}_index_anno.bed >  ${prefix}_anchor1_anno.bed
+    awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
     """
   }
 
@@ -616,6 +639,7 @@ path "UpSet_${prefix}_interactions_Promoter.txt" optional true into ch_upset_pro
 path "UpSet_${prefix}_interactions_Distal.txt" optional true into ch_upset_distal
 path "UpSet_${prefix}_interactions_Promoter_genes.txt" optional true into ch_upset_promoter_genes
 path "UpSet_${prefix}_interactions_Distal_genes.txt" optional true into ch_upset_distal_genes
+path "Distal_promoter_for_circos.txt" optional true into ch_distal_promoter
 
 script:
 if (params.mode == 'basic')
@@ -702,6 +726,7 @@ process UPSET_PLOT {
   input:
   path upset_promoter from ch_upset_promoter
   path upset_distal from ch_upset_distal
+  path distal_promoter from ch_distal_promoter
   path upset_promoter_g from ch_upset_promoter_genes
   path upset_distal_g from ch_upset_distal_genes
   val prefix from Channel.value(params.prefix)
@@ -723,7 +748,7 @@ process UPSET_PLOT {
 
   script:
   """
-  upset_plot.py ${upset_promoter} ${upset_distal} --upset_promoter_g ${upset_promoter_g} --upset_distal_g ${upset_distal_g} --prefix ${prefix} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete}
+  upset_plot.py ${upset_promoter} ${upset_distal} ${distal_promoter} --upset_promoter_g ${upset_promoter_g} --upset_distal_g ${upset_distal_g} --prefix ${prefix} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete}
   """
 }
 

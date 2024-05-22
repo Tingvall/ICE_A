@@ -48,17 +48,17 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
     Factor_Interaction = Factor_Interaction.dropna(subset=['Peak1', 'Peak2'], thresh=1)
 
     #Factor-Distal
-    Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+    Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Distal_1.columns = ['Source', 'Target', 'Edge_score']
-    Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+    Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Distal_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Distal = Factor_Distal_1.append(Factor_Distal_2)
     Factor_Distal['Edge_type'] = 'Factor-Distal'
 
     #Factor-Promoter
-    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_1.columns = ['Source', 'Target', 'Edge_score']
-    Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+    Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
@@ -79,9 +79,9 @@ def network_preprocessing_basic(interactions_annotated, interactions_annotated_n
     Promoter_Promoter['Edge_score'] = - np.log10(Promoter_Promoter['Edge_score'])
 
     #Promoter-Gene
-    Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).drop_duplicates()
+    Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_1.columns = ['Source', 'Target']
-    Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).drop_duplicates()
+    Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_2.columns = ['Source', 'Target']
     Promoter_Gene = Promoter_Gene_1.append(Promoter_Gene_2)
     Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
