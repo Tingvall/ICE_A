@@ -639,6 +639,7 @@ path "UpSet_${prefix}_interactions_Promoter.txt" optional true into ch_upset_pro
 path "UpSet_${prefix}_interactions_Distal.txt" optional true into ch_upset_distal
 path "UpSet_${prefix}_interactions_Promoter_genes.txt" optional true into ch_upset_promoter_genes
 path "UpSet_${prefix}_interactions_Distal_genes.txt" optional true into ch_upset_distal_genes
+path "Distal_promoter_for_circos.txt" optional true into ch_distal_promoter
 
 script:
 if (params.mode == 'basic')
@@ -725,6 +726,7 @@ process UPSET_PLOT {
   input:
   path upset_promoter from ch_upset_promoter
   path upset_distal from ch_upset_distal
+  path distal_promoter from ch_distal_promoter
   path upset_promoter_g from ch_upset_promoter_genes
   path upset_distal_g from ch_upset_distal_genes
   val prefix from Channel.value(params.prefix)
@@ -746,7 +748,7 @@ process UPSET_PLOT {
 
   script:
   """
-  upset_plot.py ${upset_promoter} ${upset_distal} --upset_promoter_g ${upset_promoter_g} --upset_distal_g ${upset_distal_g} --prefix ${prefix} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete}
+  upset_plot.py ${upset_promoter} ${upset_distal} ${distal_promoter} --upset_promoter_g ${upset_promoter_g} --upset_distal_g ${upset_distal_g} --prefix ${prefix} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete}
   """
 }
 

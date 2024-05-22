@@ -48,17 +48,17 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Interaction = Factor_Interaction_all.dropna(subset=['Peak1', 'Peak2'], thresh=1)
 
     #Factor-Distal
-    Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+    Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Distal_1.columns = ['Source', 'Target', 'Edge_score']
-    Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+    Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Distal_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Distal = Factor_Distal_1.append(Factor_Distal_2)
     Factor_Distal['Edge_type'] = 'Factor-Distal'
 
     #Factor-Promoter
-    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).drop_duplicates()
+    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_1.columns = ['Source', 'Target', 'Edge_score']
-    Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).drop_duplicates()
+    Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
@@ -71,6 +71,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Distal_Promoter = DP_1.append(DP_2)
     Distal_Promoter['Edge_type'] = 'Distal-Promoter'
     Distal_Promoter['Edge_score'] = - np.log10(Distal_Promoter['Edge_score'])
+    Distal_Promoter.to_csv('Distal_promoter_for_circos.txt', index=True, sep='\t' )
 
     #Promoter-Promoter
     Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
@@ -79,9 +80,9 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Promoter_Promoter['Edge_score'] = - np.log10(Promoter_Promoter['Edge_score'])
 
     #Promoter-Gene
-    Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).drop_duplicates()
+    Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_1.columns = ['Source', 'Target']
-    Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).drop_duplicates()
+    Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_2.columns = ['Source', 'Target']
     Promoter_Gene = Promoter_Gene_1.append(Promoter_Gene_2)
     Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
@@ -234,7 +235,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
             Nodes['Node_type'] = np.where(Nodes['Node'].isin(Factor_Distal_filt_fg['Source']) | Nodes['Node'].isin(Factor_Promoter_filt_fg['Source']), 'Factor',
                                   (np.where(Nodes['Node'].isin(Distal_Promoter_filt_fg['Source']), 'Distal',
                                         (np.where(Nodes['Node'].isin(Promoter_Gene_filt_fg['Source']), 'Promoter',
-                                            (np.where(Nodes['Node'].isin(Promoter_Gene_filt_fg['Target']), 'Gene', np.nan)))))))
+                                        (np.where(Nodes['Node'].isin(Promoter_Gene_filt_fg['Target']), 'Gene', np.nan)))))))
 
     Nodes.to_csv('Network_Nodes_' + prefix + '_interactions.txt', index=False, sep='\t' )
 
@@ -250,8 +251,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
         Distal_Promoter_filt_g_org = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
         Factor_Distal_filt_g_org = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g_org['Source'])]
         Factor_Promoter_filt_g_org = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
-        Factor_Distal_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Promoter_genes.txt', index=False, sep='\t' )
-        Factor_Promoter_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Distal_genes.txt', index=False, sep='\t' )
+        Factor_Distal_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Distal_genes.txt', index=False, sep='\t' )
+        Factor_Promoter_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Promoter_genes.txt', index=False, sep='\t' )
 
 
 
