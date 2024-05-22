@@ -27,7 +27,7 @@ argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all 
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def upset_plot(upset_promoter, upset_distal, upset_promoter_g, upset_distal_g, prefix, circos_plot, filter_genes, complete):
+def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, upset_distal_g, prefix, circos_plot, filter_genes, complete):
 
   ### Loading and organizing data
   upset_promoter = pd.read_table(upset_promoter)
