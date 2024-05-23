@@ -385,10 +385,10 @@ process OVERLAP_REGIONS_2 {
 
 if (params.in_regions !="all"){
   if (params.mode == "multiple"){
-    ch_peak_overlap_in_regions.concat(ch_peak_in_regions).into{ch_peaks_for_anno}
+    ch_peak_overlap_in_regions.concat(ch_peak_in_regions).transpose().into{ch_peaks_for_anno}
   }
   else{
-    ch_peak_in_regions.into{ch_peaks_for_anno}
+    ch_peak_in_regions.set{ch_peaks_for_anno}
   }
 }
 
