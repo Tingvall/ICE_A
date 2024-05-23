@@ -77,11 +77,28 @@ else{
   ch_bed2D = Channel.empty()
 }
 
-if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
-    ch_peaks
-        .splitCsv(header:true, sep:'\t')
-        .map { row -> [ row.sample, [ file(row.path) ] ] }
-        .set { ch_peaks_split}
+if (params.in_regions =="all"){
+  if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
+      ch_peaks
+          .splitCsv(header:true, sep:'\t')
+          .map { row -> [ row.sample, [ file(row.path) ] ] }
+          .set { ch_peaks_for_anno }
+}
+else{
+  if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
+    if(params.mode == "multiple"){
+      ch_peaks
+          .splitCsv(header:true, sep:'\t')
+          .map { row -> [ row.sample, [ file(row.path) ] ] }
+          .set { ch_peaks_split; ch_peaks_split_2}
+    }
+    else{
+      ch_peaks
+          .splitCsv(header:true, sep:'\t')
+          .map { row -> [ row.sample, [ file(row.path) ] ] }
+          .set { ch_peaks_split}
+    }
+}
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
@@ -92,7 +109,6 @@ if (params.tss != 'default') {
 else {
   ch_tss_1 = file(params.tss)
   ch_tss_2 = file(params.tss)
-
 }
 
 if (params.network_mode == 'genes') {
@@ -100,6 +116,19 @@ if (params.network_mode == 'genes') {
 }
 else {
   ch_genes = file(params.genes)
+}
+
+if (params.in_regions != 'all') {
+  if (params.in_regions)     { ch_for_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
+    if(params.mode == "multiple"){
+      ch_for_in_regions.into{ch_in_regions; ch_in_regions_for_multi}
+    }
+    else{
+      ch_for_in_regions.into{ch_in_regions}
+    }
+}
+else {
+  ch_in_regions = file(params.in_regions)
 }
 
 
@@ -311,6 +340,72 @@ if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
+
+/*
+ * 3.5.1.
+ */
+process OVERLAP_REGIONS {
+  publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
+
+  when:
+  params.in_regions != 'all'
+
+  input:
+  path regions from ch_in_regions
+  tuple val(peak_name), path(peak_file) from ch_peaks_split
+
+  output:
+  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peak_in_regions
+
+  script:
+    """
+    bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    """
+}
+
+
+def criteria = multiMapCriteria {
+                     sample: it[0]
+                     peaks_beds: it[1]
+                   }
+if (params.in_regions !="all" & params.mode == "multiple"){
+  ch_peaks_split_for_multi.multiMap(criteria).set {ch_peaks_multi}
+}
+
+/*
+ * 3.5.2. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
+ */
+process OVERLAP_REGIONS {
+  publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
+
+  when:
+  params.in_regions != 'all' & params.mode == "multiple"
+
+  input:
+  path regions from ch_in_regions_for_multi
+  val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+
+  output:
+  tuple val("Overlap"), file("Peak_overlap_in_regions.bed") into ch_peak_overlap_in_regions
+
+
+  script:
+    """
+    bedtools intersect -a $regions -b $peak_beds -names $sample > Peak_overlap_in_regions.bed
+    """
+}
+
+if (params.in_regions !="all"){
+  if (params.mode == "multiple"){
+    ch_peak_overlap_in_regions.concat(ch_peak_in_regions).into{ch_peaks_for_anno}
+  }
+  else{
+    ch_peak_in_regions.into{ch_peaks_for_anno}
+  }
+}
+
+
   /*
    * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
    */
@@ -318,7 +413,7 @@ if (params.skip_anno) {
       publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
 
       input:
-      tuple val(peak_name), path(peak_file) from ch_peaks_split
+      tuple val(peak_name), path(peak_file) from ch_peaks_for_anno
       val genome from Channel.value(params.genome)
       val env from Channel.value(params.env)
       path tss from ch_tss_2
@@ -331,33 +426,33 @@ if (params.skip_anno) {
 
       script:
       if (params.tss == 'default')
-      """
-      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
-      then
-        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
-      else
-        cp $peak_file ${peak_name}_for_anno.bed
-      fi
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
-      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
-      """
+        """
+        if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+        then
+          bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+        else
+          cp $peak_file ${peak_name}_for_anno.bed
+        fi
+        annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
+        awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+        cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+        """
 
       else
-      """
-      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
-      then
-        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
-      else
-        cp $peak_file ${peak_name}_for_anno.bed
-      fi
-      awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
-      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
-      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
-      awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
-      awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
-      cp $tss promoter_positions.txt
-      """
+        """
+        if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+        then
+          bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+        else
+          cp $peak_file ${peak_name}_for_anno.bed
+        fi
+        awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+        annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
+        awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
+        awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
+        awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
+        cp $tss promoter_positions.txt
+        """
   }
 
   /*
@@ -467,7 +562,7 @@ else{
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated.txt") into ch_peak_PLACseq_annotated
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_up.txt") optional true into ch_peak_PLACseq_annotated_up
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_down.txt") optional true into ch_peak_PLACseq_annotated_down
-    tuple val(peak_name), path( "${peak_name}_${prefix}_annotated_for_differential_expression.txt") optional true into ch_peak_PLACseq_annotated_for_differntial_expression
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_for_differential_expression.txt") optional true into ch_peak_PLACseq_annotated_for_differntial_expression
 
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist.txt") into ch_peak_PLACseq_annotated_genelist
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist_up.txt") optional true into ch_peak_PLACseq_annotated_genelist_up
@@ -479,11 +574,6 @@ else{
     peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance_start ${close_promoter_distance_start} --close_promoter_distance_end ${close_promoter_distance_end} --close_promoter_bin ${close_promoter_bin} --filter_close ${filter_close} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
     """
 }
-
-def criteria = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
 
 ch_peak_bed_2.multiMap(criteria).set {ch_t_1}
 ch_peak_bed_3.multiMap(criteria).set {ch_t_2}
