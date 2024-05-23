@@ -344,7 +344,7 @@ if (params.skip_anno) {
 /*
  * 3.5.1.
  */
-process OVERLAP_REGIONS {
+process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
@@ -375,7 +375,7 @@ if (params.in_regions !="all" & params.mode == "multiple"){
 /*
  * 3.5.2. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
  */
-process OVERLAP_REGIONS {
+process OVERLAP_REGIONS_2 {
   publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
 
   when:
