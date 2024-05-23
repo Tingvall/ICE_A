@@ -84,7 +84,7 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
           .map { row -> [ row.sample, [ file(row.path) ] ] }
           .set{ch_peaks}
 
-          if (params.in_region == "all"){
+          if (params.in_regions == "all"){
             ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split; ch_peaks_split_2}
           }
           else{
