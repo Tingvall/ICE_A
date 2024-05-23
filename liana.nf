@@ -360,6 +360,9 @@ def criteria = multiMapCriteria {
 if (params.in_regions !="all" && params.mode == "multiple"){
   ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
 }
+else{
+  ch_peaks_multi = file("No_peaks_multi")
+}
 
 /*
  * 3.5.2. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
