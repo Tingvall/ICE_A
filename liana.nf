@@ -348,7 +348,7 @@ process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != "all"
+  !params.in_regions == "all"
 
   input:
   path regions from ch_in_regions
