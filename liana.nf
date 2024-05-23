@@ -83,7 +83,8 @@ if (params.in_regions == "all"){
           .splitCsv(header:true, sep:'\t')
           .map { row -> [ row.sample, [ file(row.path) ] ] }
         //  .set { ch_peaks_for_anno; ch_peaks_split }
-          .set{ch_peaks}.into{ ch_peaks_for_anno; ch_peaks_split }
+          .set{ch_peaks}
+          ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split }
 }
 else{
   if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
