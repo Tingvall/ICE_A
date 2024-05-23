@@ -82,24 +82,15 @@ if (params.in_regions == "all"){
       ch_peaks
           .splitCsv(header:true, sep:'\t')
           .map { row -> [ row.sample, [ file(row.path) ] ] }
-        //  .set { ch_peaks_for_anno; ch_peaks_split }
           .set{ch_peaks}
           ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split }
 }
 else{
   if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
-    if(params.mode == "multiple"){
       ch_peaks
           .splitCsv(header:true, sep:'\t')
           .map { row -> [ row.sample, [ file(row.path) ] ] }
           .set { ch_peaks_split; ch_peaks_split_2}
-    }
-    else{
-      ch_peaks
-          .splitCsv(header:true, sep:'\t')
-          .map { row -> [ row.sample, [ file(row.path) ] ] }
-          .set { ch_peaks_split}
-    }
 }
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
@@ -122,15 +113,11 @@ else {
 
 if (params.in_regions != 'all') {
   if (params.in_regions)     { ch_for_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-    if(params.mode == "multiple"){
       ch_for_in_regions.into{ch_in_regions; ch_in_regions_for_multi}
-    }
-    else{
-      ch_for_in_regions.into{ch_in_regions}
-    }
 }
 else {
   ch_in_regions = file(params.in_regions)
+  ch_in_regions_for_multi = file(params.in_regions)
 }
 
 
@@ -350,7 +337,7 @@ process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
-  !params.in_regions == "all"
+  params.in_regions != "all"
 
   input:
   path regions from ch_in_regions
