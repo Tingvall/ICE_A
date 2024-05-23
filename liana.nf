@@ -77,7 +77,7 @@ else{
   ch_bed2D = Channel.empty()
 }
 
-if (params.in_regions =="all"){
+if (params.in_regions == "all"){
   if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
       ch_peaks
           .splitCsv(header:true, sep:'\t')
@@ -348,7 +348,7 @@ process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != 'all'
+  params.in_regions != "all"
 
   input:
   path regions from ch_in_regions
@@ -368,8 +368,8 @@ def criteria = multiMapCriteria {
                      sample: it[0]
                      peaks_beds: it[1]
                    }
-if (params.in_regions !="all" & params.mode == "multiple"){
-  ch_peaks_split_for_multi.multiMap(criteria).set {ch_peaks_multi}
+if (params.in_regions !="all" && params.mode == "multiple"){
+  ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
 }
 
 /*
@@ -379,7 +379,7 @@ process OVERLAP_REGIONS_2 {
   publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != 'all' & params.mode == "multiple"
+  params.in_regions != "all" && params.mode == "multiple"
 
   input:
   path regions from ch_in_regions_for_multi
