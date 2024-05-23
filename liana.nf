@@ -77,13 +77,19 @@ else{
   ch_bed2D = Channel.empty()
 }
 
+
 if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
       ch_peaks
           .splitCsv(header:true, sep:'\t')
           .map { row -> [ row.sample, [ file(row.path) ] ] }
           .set{ch_peaks}
-          ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split; ch_peaks_split_2}
 
+          if (params.in_region == "all"){
+            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split; ch_peaks_split_2}
+          }
+          else{
+            ch_peaks.into{ ch_peaks_split; ch_peaks_split_2}
+          }
 
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
@@ -350,9 +356,7 @@ def criteria = multiMapCriteria {
                      sample: it[0]
                      peaks_beds: it[1]
                    }
-//if (params.in_regions !="all" && params.mode == "multiple"){
   ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
-//}
 
 
 /*
