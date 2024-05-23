@@ -111,8 +111,7 @@ else {
 }
 
 if (params.in_regions != 'all') {
-  if (params.in_regions)     { ch_for_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-      ch_for_in_regions.into{ch_in_regions; ch_in_regions_for_multi}
+  if (params.in_regions)     { ch_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
 }
 else {
   ch_in_regions = file(params.in_regions)
@@ -298,6 +297,7 @@ process ANNOTATE_INTERACTION {
     """
 }
 
+
 /*
  * 3. MERGE ANNOTATED ANCHOR REGIONS
  */
@@ -324,16 +324,23 @@ process JOIN_ANNOTATED_INTERACTIONS {
     """
 }
 
+
 if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
+def criteria = multiMapCriteria {
+                     sample: it[0]
+                     peaks_beds: it[1]
+                   }
+ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
+
 
 /*
- * 3.5.1.
+ * 3.5
  */
 process OVERLAP_REGIONS_1 {
-  publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
+  publishDir "${params.outdir}/tmp/process3.5", mode: 'copy', enabled: params.save_tmp
 
   when:
   params.in_regions != "all"
@@ -341,57 +348,35 @@ process OVERLAP_REGIONS_1 {
   input:
   path regions from ch_in_regions
   tuple val(peak_name), path(peak_file) from ch_peaks_split
+  val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+
 
   output:
-  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peak_in_regions
+  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
+  tuble val(peak_name), file("Peak_overlap_in_regions.bed") optional true into ch_all_peaks_in_region
 
   script:
+    if (params.mode == "multiple")
+    """
+    bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    bedtools intersect -a $regions -b $peak_beds -names $sample > Peak_overlap_in_regions.bed
+    """
+
+    else
     """
     bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
     """
 }
 
-
-def criteria = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
-  ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
-
-
-/*
- * 3.5.2. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
- */
-process OVERLAP_REGIONS_2 {
-  publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
-
-  when:
-  params.in_regions != "all" && params.mode == "multiple"
-
-  input:
-  path regions from ch_in_regions_for_multi
-  val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
-  val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
-
-  output:
-  tuple val("Overlap"), file("Peak_overlap_in_regions.bed") into ch_peak_overlap_in_regions
-
-
-  script:
-    """
-    bedtools intersect -a $regions -b $peak_beds -names $sample > Peak_overlap_in_regions.bed
-    """
-}
-
-if (params.in_regions !="all"){
+if (params.in_regions != "all"){
   if (params.mode == "multiple"){
-    ch_peak_overlap_in_regions.concat(ch_peak_in_regions).flatten().collate(2).set{ch_peaks_for_anno}
+    ch_peaks_in_region.combine(ch_all_peaks_in_region).set{ch_peaks_for_anno}
   }
   else{
-    ch_peak_in_regions.set{ch_peaks_for_anno}
+    ch_peaks_in_region.set{ch_peaks_for_anno}
   }
 }
-
 
   /*
    * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
@@ -442,6 +427,8 @@ if (params.in_regions !="all"){
         """
   }
 
+
+
   /*
    * 5. SPLIT ANNOTATED 2D-BED: ANNOTATED 2D-BED SPLIT FOR PEAK OVERLAP
    */
@@ -453,8 +440,8 @@ if (params.in_regions !="all"){
     val prefix from Channel.value(params.prefix)
 
     output:
-    path "${prefix}_anchor1_anno.bed" into ch_bed2D_anno_split_anchor1_1, ch_bed2D_anno_split_anchor1_2
-    path "${prefix}_anchor2_anno.bed" into ch_bed2D_anno_split_anchor2_1, ch_bed2D_anno_split_anchor2_2
+    path "${prefix}_anchor1_anno.bed" into ch_bed2D_anno_split_anchor1_1, ch_bed2D_anno_split_anchor1_2, ch_bed2D_anno_split_anchor1_3
+    path "${prefix}_anchor2_anno.bed" into ch_bed2D_anno_split_anchor2_1, ch_bed2D_anno_split_anchor2_2, ch_bed2D_anno_split_anchor1_3
     path "${prefix}_index_anno.bed" into ch_bed2D_index_anno_1, ch_bed2D_index_anno_2
 
     script:
@@ -464,6 +451,8 @@ if (params.in_regions !="all"){
     awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
     """
   }
+
+
 
   /*
    * 6. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
@@ -503,6 +492,7 @@ if (params.in_regions !="all"){
       bedtools intersect -wa -wb -a ${peak_name}_extended_nonneg.bed -b $bed2D_anno_split_anchor2 > ${peak_name}_anchor_2.bed
       """
   }
+
 
 if (!params.interaction_threshold){
   ch_interaction_threshold = Channel.value(2*params.binsize)
