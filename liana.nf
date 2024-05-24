@@ -330,13 +330,8 @@ if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
-def criteria = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
-ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
-
-
+ch_peaks_split.into{ch_peaks_split_1; ch_test}
+ch_test.view()
 /*
  * 3.5.1
  */
@@ -347,7 +342,7 @@ process OVERLAP_REGIONS_1 {
   params.in_regions != "all"
 
   input:
-  set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
+  set val(peak_name), file(peak_file), file(regions) from ch_peaks_split_1.combine(ch_in_regions_1).groupTuple()
 
   output:
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
@@ -358,6 +353,11 @@ process OVERLAP_REGIONS_1 {
     """
 }
 
+def criteria = multiMapCriteria {
+                     sample: it[0]
+                     peaks_beds: it[1]
+                   }
+ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
 
 /*
  * 3.5.2
