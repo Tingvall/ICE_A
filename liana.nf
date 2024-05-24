@@ -95,12 +95,11 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
 if (params.tss != 'default') {
-  if (params.tss)     { ch_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
-    ch_tss.into {ch_tss_1; ch_tss_2}
+  if (params.tss)     { ch_for_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
+    ch_for_tss.first().set{ch_tss}
 }
 else {
-  ch_tss_1 = file(params.tss)
-  ch_tss_2 = file(params.tss)
+  ch_tss = file(params.tss)
 }
 
 if (params.network_mode == 'genes') {
@@ -111,13 +110,11 @@ else {
 }
 
 if (params.in_regions != 'all') {
-  if (params.in_regions)     { ch_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-    //ch_in_regions.into{ch_in_regions_1;ch_in_regions_2}
-    ch_in_regions.first().set{ch_in_regions_1}
+  if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
+    ch_for_regions.first().set{ch_in_regions}
 }
 else {
-  ch_in_regions_1 = file(params.in_regions)
-  ch_in_regions_2 = file(params.in_regions)
+  ch_in_regions = file(params.in_regions)
 }
 
 
@@ -270,7 +267,7 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
-    path tss from ch_tss_1
+    path tss from ch_tss
 
 
     output:
@@ -330,9 +327,6 @@ if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
-ch_peaks_split.into{ch_peaks_split_1; ch_test}
-ch_test.view()
-
 /*
  * 3.5.1
  */
@@ -344,15 +338,14 @@ process OVERLAP_REGIONS_1 {
 
   input:
   tuple val(peak_name), path(peak_file) from ch_peaks_split_1
-  path in_regions from ch_in_regions_1
+  path in_regions from ch_in_regions
 
   output:
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
 
   script:
   """
-  #bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_in_regions.bed
-  cp $peak_file ${peak_name}_in_regions.bed
+  bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_in_regions.bed
   """
 }
 
@@ -372,7 +365,7 @@ process OVERLAP_REGIONS_2 {
   params.in_regions != "all" && params.mode == "multiple"
 
   input:
-  path in_regions from ch_in_regions_1
+  path in_regions from ch_in_regions
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
@@ -388,10 +381,7 @@ process OVERLAP_REGIONS_2 {
 
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
-    //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    ch_peaks_in_region.into{ch_peaks_for_anno_test2; ch_peaks_in_region_2}
-    ch_peaks_in_region_2.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
-    ch_peaks_for_anno_test2.view()
+    ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
   }
   else{
     ch_peaks_in_region.set{ch_peaks_for_anno}
@@ -408,11 +398,11 @@ process ANNOTATE_PEAKS {
     tuple val(peak_name), path(peak_file) from ch_peaks_for_anno
     val genome from Channel.value(params.genome)
     val env from Channel.value(params.env)
-    path tss from ch_tss_2
+    path tss from ch_tss
 
 
     output:
-    tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno_1
+    tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
     tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
     path "promoter_positions.txt" into ch_promoter_positions
 
@@ -447,8 +437,6 @@ process ANNOTATE_PEAKS {
       """
  }
 
-  ch_peak_anno_1.into{ch_peak_anno; ch_test2}
-  ch_test2.view()
 
   /*
    * 5. SPLIT ANNOTATED 2D-BED: ANNOTATED 2D-BED SPLIT FOR PEAK OVERLAP
