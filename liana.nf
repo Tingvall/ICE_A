@@ -359,14 +359,14 @@ process OVERLAP_REGIONS_1 {
   script:
     if (params.mode == "multiple")
     """
-    cp $in_regions > regions.bed
+    cp $in_regions regions.bed
     bedtools intersect -wa -a regions.bed -b $peak_file > ${peak_name}_in_regions.bed
     bedtools intersect -wa -a regions.bed -b $peak_beds -names $sample > "Peak_overlap_in_regions.bed"
     """
 
     else
     """
-    cp $in_regions > regions.bed
+    cp $in_regions regions.bed
     bedtools intersect -wa -a regions.bed -b $peak_file > ${peak_name}_in_regions.bed
     """
 }
