@@ -112,7 +112,8 @@ else {
 
 if (params.in_regions != 'all') {
   if (params.in_regions)     { ch_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-    ch_in_regions.into{ch_in_regions_1;ch_in_regions_2}
+    //ch_in_regions.into{ch_in_regions_1;ch_in_regions_2}
+    ch_in_regions.first().set{ch_in_regions_1}
 }
 else {
   ch_in_regions_1 = file(params.in_regions)
@@ -371,7 +372,7 @@ process OVERLAP_REGIONS_2 {
   params.in_regions != "all" && params.mode == "multiple"
 
   input:
-  path in_regions from ch_in_regions_2
+  path in_regions from ch_in_regions_1
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
@@ -397,54 +398,54 @@ if (params.in_regions != "all"){
   }
 }
 
-  /*
-   * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
-   */
-  process ANNOTATE_PEAKS {
-      publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
+/*
+ * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
+ */
+process ANNOTATE_PEAKS {
+    publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
 
-      input:
-      tuple val(peak_name), path(peak_file) from ch_peaks_for_anno
-      val genome from Channel.value(params.genome)
-      val env from Channel.value(params.env)
-      path tss from ch_tss_2
+    input:
+    tuple val(peak_name), path(peak_file) from ch_peaks_for_anno
+    val genome from Channel.value(params.genome)
+    val env from Channel.value(params.env)
+    path tss from ch_tss_2
 
 
-      output:
-      tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno_1
-      tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
-      path "promoter_positions.txt" into ch_promoter_positions
+    output:
+    tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno_1
+    tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
+    path "promoter_positions.txt" into ch_promoter_positions
 
-      script:
-      if (params.tss == 'default')
-        """
-        if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
-        then
-          bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
-        else
-          cp $peak_file ${peak_name}_for_anno.bed
-        fi
-        annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
-        awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-        cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
-        """
-
+    script:
+    if (params.tss == 'default')
+      """
+      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+      then
+        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
       else
-        """
-        if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
-        then
-          bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
-        else
-          cp $peak_file ${peak_name}_for_anno.bed
-        fi
-        awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
-        annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
-        awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
-        awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
-        awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
-        cp $tss promoter_positions.txt
-        """
-  }
+        cp $peak_file ${peak_name}_for_anno.bed
+      fi
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
+      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
+      """
+
+    else
+      """
+      if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
+      then
+        bed2pos.pl $peak_file -unique > ${peak_name}_for_anno.bed
+      else
+        cp $peak_file ${peak_name}_for_anno.bed
+      fi
+      awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
+      annotatePeaks.pl ${peak_name}_for_anno.bed $genome -gtf tss.gtf > ${peak_name}_anno_noIDs.txt
+      awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
+      awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
+      awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
+      cp $tss promoter_positions.txt
+      """
+ }
 
   ch_peak_anno_1.into{ch_peak_anno; ch_test2}
   ch_test2.view()
