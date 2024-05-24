@@ -375,7 +375,7 @@ process OVERLAP_REGIONS_2 {
 
   script:
     """
-    bedtools intersect -wa -a $in_regions -b $peak_beds -names $sample > "Peak_overlap_in_regions.bed"
+    bedtools intersect -a $in_regions -b $peak_beds -C -names $sample > "Peak_overlap_in_regions.bed"
     """
 }
 
