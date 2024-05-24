@@ -112,10 +112,11 @@ else {
 
 if (params.in_regions != 'all') {
   if (params.in_regions)     { ch_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
+    ch_in_regions.into{ch_in_regions_1;ch_in_regions_2}
 }
 else {
-  ch_in_regions = file(params.in_regions)
-  ch_in_regions_for_multi = file(params.in_regions)
+  ch_in_regions_1 = file(params.in_regions)
+  ch_in_regions_2 = file(params.in_regions)
 }
 
 
@@ -346,8 +347,8 @@ process OVERLAP_REGIONS_1 {
   params.in_regions != "all"
 
   input:
-  path regions from ch_in_regions
-  tuple val(peak_name), path(peak_file) from ch_peaks_split
+  set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
+  path in_regions from ch_in_regions_2
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
@@ -371,7 +372,7 @@ process OVERLAP_REGIONS_1 {
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
     //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    ch_peaks_in_region.set{ch_peaks_for_anno_test}
+    ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
 
     ch_peaks_for_anno_test.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
     ch_peaks_for_anno_test2.view()
