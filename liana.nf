@@ -220,8 +220,6 @@ println ("""
         ===========================================================================================
         """)
 }
-ch_peaks_split.into{ch_peaks_split_1; ch_test}
-ch_test.view()
 
 /*
  * 1. 2D-BED SPLIT: SPLIT 2D-BED FILE INTO 2 BED FILES FOR ANNOTATION
@@ -331,7 +329,8 @@ if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
-
+ch_peaks_split.into{ch_peaks_split_1; ch_test}
+ch_test.view()
 /*
  * 3.5.1
  */
@@ -342,16 +341,16 @@ process OVERLAP_REGIONS_1 {
   params.in_regions != "all"
 
   input:
-  tuple val(peak_name), file(peak_file) from ch_peaks_split_1
+  tuple val(peak_name), path(peak_file) from ch_peaks_split_1
   path regions from ch_in_regions_1
 
   output:
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
 
   script:
-    """
-    bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
-    """
+  """
+  bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+  """
 }
 
 def criteria = multiMapCriteria {
