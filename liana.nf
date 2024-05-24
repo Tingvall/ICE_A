@@ -360,7 +360,7 @@ process OVERLAP_REGIONS_1 {
     if (params.mode == "multiple")
     """
     bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
-    bedtools intersect -a $regions -b $peak_beds -names $sample > Peak_overlap_in_regions.bed
+    //bedtools intersect -a $regions -b $peak_beds -names $sample > Peak_overlap_in_regions.bed
     """
 
     else
@@ -372,7 +372,7 @@ process OVERLAP_REGIONS_1 {
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
     //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    ch_peaks_split.set{ch_peaks_for_anno_test}
+    ch_peaks_in_region.set{ch_peaks_for_anno_test}
 
     ch_peaks_for_anno_test.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
     ch_peaks_for_anno_test2.view()
