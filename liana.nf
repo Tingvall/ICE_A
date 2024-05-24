@@ -347,7 +347,7 @@ process OVERLAP_REGIONS_1 {
   input:
   //set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
   path in_regions from ch_in_regions
-  set val(peak_name), file(peak_file)from ch_peaks_split
+  set val(peak_name), file(peak_file) from ch_peaks_split
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
@@ -374,8 +374,8 @@ process OVERLAP_REGIONS_1 {
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
     //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
-
+    //ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
+    ch_peaks_in_region.set{ch_peaks_for_anno_test}
     ch_peaks_for_anno_test.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
     ch_peaks_for_anno_test2.view()
   }
