@@ -85,10 +85,10 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
           .set{ch_peaks}
 
           if (params.in_regions == "all"){
-            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split; ch_peaks_split_2}
+            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split_1; ch_peaks_split_2}
           }
           else{
-            ch_peaks.into{ ch_peaks_split; ch_peaks_split_2}
+            ch_peaks.into{ ch_peaks_split_1; ch_peaks_split_2}
           }
 
 
