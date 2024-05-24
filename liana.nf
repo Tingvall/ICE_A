@@ -220,7 +220,8 @@ println ("""
         ===========================================================================================
         """)
 }
-
+ch_peaks_split.into{ch_peaks_split_1; ch_test}
+ch_test.view()
 
 /*
  * 1. 2D-BED SPLIT: SPLIT 2D-BED FILE INTO 2 BED FILES FOR ANNOTATION
@@ -330,8 +331,7 @@ if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
-ch_peaks_split.into{ch_peaks_split_1; ch_test}
-ch_test.view()
+
 /*
  * 3.5.1
  */
