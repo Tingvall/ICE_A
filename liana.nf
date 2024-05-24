@@ -386,8 +386,8 @@ process OVERLAP_REGIONS_2 {
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
     //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    //ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
-    ch_peaks_in_region.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
+    ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
+    ch_peaks_for_anno_test.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
     ch_peaks_for_anno_test2.view()
   }
   else{
@@ -409,7 +409,7 @@ if (params.in_regions != "all"){
 
 
       output:
-      tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
+      tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno_1
       tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
       path "promoter_positions.txt" into ch_promoter_positions
 
@@ -444,7 +444,8 @@ if (params.in_regions != "all"){
         """
   }
 
-
+  ch_peak_anno_1.into{ch_peak_anno; ch_test2}
+  ch_test2.view()
 
   /*
    * 5. SPLIT ANNOTATED 2D-BED: ANNOTATED 2D-BED SPLIT FOR PEAK OVERLAP
