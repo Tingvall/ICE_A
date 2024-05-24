@@ -335,7 +335,7 @@ def criteria = multiMapCriteria {
 ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
 
 ch_peaks_split.into{ch_peaks_split_1;ch_peaks_split_2}
-ch_peaks_split_2.view()
+ch_peaks_split_1.view()
 /*
  * 3.5
  */
