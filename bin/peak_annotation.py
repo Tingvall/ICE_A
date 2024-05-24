@@ -120,7 +120,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     if (skip_promoter_promoter=='true'):
         #Proximal_Distal = Proximal_Distal.drop(Proximal_Distal[(Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')].index)
         Proximal_Distal = Proximal_Distal.loc[~((Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')),:]
-         
+
     # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
     promoter_pos["TSS"] = (promoter_pos.TSS_start+promoter_pos.TSS_end)/2
     Proximal_Distal=Proximal_Distal.merge(promoter_pos.loc[:,["TSS", "TSS_strand"]], left_on='Refseq', right_index=True, how = 'left')
@@ -140,6 +140,16 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Proximal_Distal =Proximal_Distal.sort_values('sum')
         Proximal_Distal = Proximal_Distal.drop_duplicates(subset=['Chr', 'Start', 'End', 'Peak_score', 'Distance_to_TSS', 'EntrezID', 'Refseq', 'Ensembl', 'Gene', 'Peak_type', 'Annotation_method', 'Interaction_score'], keep="first")
         Proximal_Distal=Proximal_Distal.drop(columns=['sum'])
+
+    if peak_name == 'ALL':
+        peak_anno_2 = peak_anno.iloc[:,0:5].rename_axis('factor').reset_index().replace({'factor': r'-[0-9]*$'}, {'factor': ''}, regex=True).drop_duplicates()
+        peak_anno_2["peakID"] = peak_anno_2["Chr"] + ":" + (peak_anno_2["Start"]-1).astype(str) + "-" + peak_anno_2["End"].astype(str)
+        peak_anno_2 = peak_anno_2.loc[:,['peakID', 'factor', 'Peak Score']].pivot( index='peakID', columns='factor', values='Peak Score')
+        peak_anno_2['Peak_Score'] = peak_anno_2.sum(axis=1)
+
+        Proximal_Distal.index = Proximal_Distal["Chr"] + ":" + Proximal_Distal["Start"].astype(str) + "-" + Proximal_Distal["End"].astype(str)
+        Proximal_Distal = Proximal_Distal.merge(peak_anno_2, left_index=True, right_index=True, how = 'left')
+        Proximal_Distal = Proximal_Distal.iloc[:, np.r_[0,1,2,20,16:20, 4:16]]
 
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes

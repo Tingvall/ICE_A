@@ -371,7 +371,7 @@ process OVERLAP_REGIONS_2 {
 
 
   output:
-  tuple val("All"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
+  tuple val("ALL"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
 
   script:
     """
