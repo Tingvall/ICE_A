@@ -360,12 +360,13 @@ process OVERLAP_REGIONS_1 {
   script:
     if (params.mode == "multiple")
     """
-    bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    bedtools intersect -wa -a $in_regions -b $peak_beds -names $sample > "Peak_overlap_in_regions.bed"
     """
 
     else
     """
-    bedtools intersect -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
     """
 }
 
