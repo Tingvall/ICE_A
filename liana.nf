@@ -331,6 +331,7 @@ if (params.skip_anno) {
 
 ch_peaks_split.into{ch_peaks_split_1; ch_test}
 ch_test.view()
+
 /*
  * 3.5.1
  */
@@ -342,14 +343,14 @@ process OVERLAP_REGIONS_1 {
 
   input:
   tuple val(peak_name), path(peak_file) from ch_peaks_split_1
-  path regions from ch_in_regions_1
+  path in_regions from ch_in_regions_1
 
   output:
-  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
+  tuple val(peak_name), file("${peak_name}_in_regions.txt") into ch_peaks_in_region
 
   script:
   """
-  bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+  bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_in_regions.bed
   """
 }
 
@@ -386,8 +387,8 @@ process OVERLAP_REGIONS_2 {
 if (params.in_regions != "all"){
   if (params.mode == "multiple"){
     //ch_all_peaks_in_region.combine(ch_peaks_in_region).flatten().collate(2).set{ch_peaks_for_anno_test}
-    ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno_test}
-    ch_peaks_for_anno_test.into{ch_peaks_for_anno; ch_peaks_for_anno_test2}
+    ch_peaks_in_region.into{ch_peaks_for_anno_test2; ch_peaks_in_region_2}
+    ch_peaks_in_region_2.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
     ch_peaks_for_anno_test2.view()
   }
   else{
