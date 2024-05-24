@@ -346,7 +346,7 @@ process OVERLAP_REGIONS_1 {
 
   input:
   //set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
-  path in_regions from ch_in_regions_2
+  path in_regions from ch_in_regions
   set val(peak_name), file(peak_file)from ch_peaks_split
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
