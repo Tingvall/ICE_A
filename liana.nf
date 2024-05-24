@@ -346,7 +346,7 @@ process OVERLAP_REGIONS_1 {
   path regions from ch_in_regions_1
 
   output:
-  tuple val(peak_name), file("${peak_name}_in_regions.txt") into ch_peaks_in_region
+  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
 
   script:
     """
