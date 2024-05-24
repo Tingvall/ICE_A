@@ -112,11 +112,9 @@ else {
 
 if (params.in_regions != 'all') {
   if (params.in_regions)     { ch_in_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-    ch_in_regions.into{ch_in_regions_1;ch_in_regions_2}
 }
 else {
   ch_in_regions_1 = file(params.in_regions)
-  ch_in_regions_2 = file(params.in_regions)
 }
 
 
@@ -347,8 +345,9 @@ process OVERLAP_REGIONS_1 {
   params.in_regions != "all"
 
   input:
-  set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
+  //set val(peak_name), file(peak_file), file(regions) from ch_peaks_split.combine(ch_in_regions_1).groupTuple()
   path in_regions from ch_in_regions_2
+  set val(peak_name), file(peak_file)from ch_peaks_split
   val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
@@ -360,13 +359,15 @@ process OVERLAP_REGIONS_1 {
   script:
     if (params.mode == "multiple")
     """
-    bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
-    bedtools intersect -wa -a $in_regions -b $peak_beds -names $sample > "Peak_overlap_in_regions.bed"
+    cp $in_regions > regions.bed
+    bedtools intersect -wa -a regions.bed -b $peak_file > ${peak_name}_in_regions.bed
+    bedtools intersect -wa -a regions.bed -b $peak_beds -names $sample > "Peak_overlap_in_regions.bed"
     """
 
     else
     """
-    bedtools intersect -wa -a $regions -b $peak_file > ${peak_name}_in_regions.bed
+    cp $in_regions > regions.bed
+    bedtools intersect -wa -a regions.bed -b $peak_file > ${peak_name}_in_regions.bed
     """
 }
 
