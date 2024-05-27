@@ -566,7 +566,7 @@ ch_peak_bed_2.filter{it[0] != "ALL"}.into{ch_peak_bed_filt_1; ch_peak_bed_filt_2
 ch_peak_bed_filt_1.multiMap(criteria).set {ch_t_1}
 ch_peak_bed_filt_2.multiMap(criteria).set {ch_t_2}
 ch_peak_bed_filt_3.multiMap(criteria).set {ch_t_3}
-ch_peak_bed_filt_3.view()
+ch_peak_bed_filt_4.view()
 
 /*
  * 8. BEDTOOLS INTERSECT INTERACTION CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
