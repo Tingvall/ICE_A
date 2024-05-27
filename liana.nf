@@ -570,9 +570,8 @@ def criteria_2 = multiMapCriteria {
 ch_peak_bed_2.into{ch_peak_bed_3; ch_peak_bed_test}
 ch_peak_bed_test.filter{it[0] != "ALL"}.set{ch_peak_bed_test_2}
 
-ch_peak_bed_3.multiMap(criteria_2).into {ch_t_1; ch_t_test}
+ch_peak_bed_3.multiMap(criteria_2).set {ch_t_1}
 ch_peak_bed_test_2.view()
-ch_t_test.view()
 
 ch_peak_bed_3.multiMap(criteria_2).set {ch_t_2}
 ch_peak_bed_4.multiMap(criteria_2).set {ch_t_3}
