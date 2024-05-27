@@ -149,7 +149,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
         Proximal_Distal.index = Proximal_Distal["Chr"] + ":" + Proximal_Distal["Start"].astype(str) + "-" + Proximal_Distal["End"].astype(str)
         Proximal_Distal = Proximal_Distal.merge(peak_anno_2, left_index=True, right_index=True, how = 'left')
-        Proximal_Distal = Proximal_Distal.iloc[:, np.r_[0,1,2,20,16:20, 4:16]]
+        Proximal_Distal = Proximal_Distal.iloc[:, np.r_[0,1,2,len(Proximal_Distal.columns)-1,16:len(Proximal_Distal.columns)-1, 4:16]]
 
     # Organizing and saving annotated files/genelsits
     # Basic/Multiple mode: Handling of peaks annotating to several genes

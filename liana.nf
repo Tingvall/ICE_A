@@ -84,7 +84,7 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
           .map { row -> [ row.sample,  file(row.path)  ] }
           .set{ch_peaks}
 
-          if (params.in_regions == "all"){
+          if (params.in_regions == "Not_specified"){
             ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split_1; ch_peaks_split_2}
           }
           else{
@@ -334,7 +334,7 @@ process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != "all"
+  params.in_regions != "Not_specified"
 
   input:
   tuple val(peak_name), path(peak_file) from ch_peaks_split_1
@@ -362,7 +362,7 @@ process OVERLAP_REGIONS_2 {
   publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != "all" && params.mode == "multiple"
+  params.in_regions != "Not_specified" && params.mode == "multiple"
 
   input:
   path in_regions from ch_in_regions
@@ -379,7 +379,7 @@ process OVERLAP_REGIONS_2 {
     """
 }
 
-if (params.in_regions != "all"){
+if (params.in_regions != "Not_specified"){
   if (params.mode == "multiple"){
     ch_peaks_in_region.concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
   }
