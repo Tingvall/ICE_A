@@ -403,7 +403,7 @@ process ANNOTATE_PEAKS {
 
     output:
     tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
-    tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
+    tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2
     path "promoter_positions.txt" into ch_promoter_positions
 
     script:
@@ -561,20 +561,11 @@ else{
     """
 }
 
-def criteria_2 = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
 
-//ch_peak_bed_2.filter {it[0] != "ALL" }.multiMap(criteria_2).set {ch_t_1}
-ch_peak_bed_2.into{ch_peak_bed_test1; ch_peak_bed_test2}
-ch_peak_bed_test1.filter{it[0] != "ALL"}.set{ch_test}
-
-ch_test.view()
-
-ch_peak_bed_test2.multiMap(criteria_2).set {ch_t_1}
-ch_peak_bed_3.multiMap(criteria_2).set {ch_t_2}
-ch_peak_bed_4.multiMap(criteria_2).set {ch_t_3}
+ch_peak_bed_2.filter{it[0] != "ALL"}.into{ch_peak_bed_filt_1; ch_peak_bed_filt_2; ch_peak_bed_filt_3}
+ch_peak_bed_filt_1.multiMap(criteria).set {ch_t_1}
+ch_peak_bed_filt_2.multiMap(criteria).set {ch_t_2}
+ch_peak_bed_filt_3.multiMap(criteria).set {ch_t_3}
 
 
 /*
