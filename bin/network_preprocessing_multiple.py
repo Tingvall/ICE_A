@@ -50,8 +50,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     #Factor-Distal
     if (circos_use_promoters == "true"):
-        Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Peak1_score'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 1 & (Factor_Interaction['Peak1_score'] == 0)), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
-        Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Peak1_score'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 0 & (Factor_Interaction['Peak1_score'] == 1)), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
+        Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Peak1_score'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 1 & (Factor_Interaction['Peak2_score'] == 0)), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
+        Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Peak1_score'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 0 & (Factor_Interaction['Peak2_score'] == 1)), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     else:
         Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
         Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
@@ -61,10 +61,13 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Distal['Edge_type'] = 'Factor-Distal'
 
     #Factor-Promoter
-    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
-    Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
+    if (circos_use_promoters == "true"):
+        Factor_Promoter_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Peak1_score'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 0) & (Factor_Interaction['Peak2_score'] == 1), ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
+        Factor_Promoter_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Peak1_score'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 1) & (Factor_Interaction['Peak2_score'] == 0), ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
+    else:
+        Factor_Promoter_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Peak1',  'Anchor1', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
+        Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_1.columns = ['Source', 'Target', 'Edge_score']
-    Factor_Promoter_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Peak2',  'Anchor2', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     Factor_Promoter_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
