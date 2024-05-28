@@ -275,7 +275,7 @@ process ANNOTATE_INTERACTION {
     output:
     path "${anchor1.baseName}_anno.txt" into ch_anchor1_anno       // Annotated anchor bed files
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
-    path "promoter_positions.txt" into ch_promoter_positions_1, ch_promoter_positions_2
+    path "promoter_positions.txt" into ch_for_promoter_positions
 
     script:
     if (params.tss == 'default')
@@ -303,7 +303,7 @@ process ANNOTATE_INTERACTION {
     cp $tss promoter_positions.txt
     """
 }
-
+ch_for_promoter_positions.first().set{ch_promoter_positions}
 
 /*
  * 3. MERGE ANNOTATED ANCHOR REGIONS
@@ -348,7 +348,7 @@ process OVERLAP_REGIONS_1 {
   input:
   tuple val(peak_name), path(peak_file) from ch_peaks_split_1
   path in_regions from ch_in_regions
-  path promoter_positions from ch_promoter_positions_1
+  path promoter_positions from ch_promoter_positions
 
   output:
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
@@ -538,7 +538,7 @@ else{
 
     input:
     set val(peak_name), file(peak_anno_anchor1), file(peak_anno_anchor2), file(peak_anno), file(bed2D_index_anno) from ch_peak_anno_anchor1.join(ch_peak_anno_anchor2).join(ch_peak_anno).combine(ch_bed2D_index_anno_1)
-    path promoter_positions from ch_promoter_positions_2
+    path promoter_positions from ch_promoter_positions
     val proximity_unannotated from Channel.value(params.proximity_unannotated)
     val multiple_anno from Channel.value(params.multiple_anno)
     val prefix from Channel.value(params.prefix)
