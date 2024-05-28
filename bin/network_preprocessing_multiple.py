@@ -73,9 +73,13 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
 
     #Distal-Promoter
-    DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']]
+    if (circos_use_promoters == "true"):
+        DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Peak1_score'] == 1) & (interactions_anno['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == 0), ['Anchor1','Anchor2', 'Interaction_score']]
+        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
+    else:
+        DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']]
+        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
     DP_1.columns = ['Source', 'Target', 'Edge_score']
-    DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
     DP_2.columns = ['Source', 'Target', 'Edge_score']
     Distal_Promoter = DP_1.append(DP_2)
     Distal_Promoter['Edge_type'] = 'Distal-Promoter'

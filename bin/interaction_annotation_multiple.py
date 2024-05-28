@@ -86,9 +86,9 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
     if (circos_use_promoters == "true"):
         for f in factor:
-            factor_dict[f][factor_dict[f][("Peak1_score"==1)| ("Peak2_score"==1)]].to_csv(str(f) + '_' + prefix + '_interactions.txt', index=False, sep='\t' )
+            factor_dict[f][(factor_dict[f]["Peak1_score"==1) | (factor_dict[f]["Peak2_score"==1])].to_csv(str(f) + '_' + prefix + '_interactions.txt', index=False, sep='\t' )
         anchors_peaks_anno.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_and_promoter.txt', index=True, sep='\t' )
-        anchors_peaks_anno = anchors_peaks_anno[anchors_peaks_anno[("Peak1_score"==1) | ("Peak2_score"==1)]]
+        anchors_peaks_anno = anchors_peaks_anno[(anchors_peaks_anno["Peak1_score"==1) | (anchors_peaks_anno["Peak2_score"==1])]
         anchors_peaks_anno = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
         anchors_peaks_anno.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_overlap.txt', index=True, sep='\t' )
 
