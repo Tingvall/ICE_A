@@ -664,7 +664,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
   path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all_not_promoters
   path "${prefix}_HOMER_annotated_interactions_with_peak_and_promoter.txt" optional true into ch_interactions_all_promoters
-  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_promoters_not_aggregated
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_aggregated
   path "*_${prefix}_interactions_up.txt" optional true into ch_interactions_up
   path "*_${prefix}_interactions_down.txt" optional true into ch_interactions_down
 
