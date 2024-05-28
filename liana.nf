@@ -284,7 +284,7 @@ process ANNOTATE_INTERACTION {
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
     cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss homer_promoter_positions.txt
     awk -v FS='\t' -v OFS='\t' '{if (\$5==1) {print \$1,\$2,\$3+2000-$promoter_start,\$4-2000+$promoter_end,\$5} if (\$5==0) {print \$1,\$2,\$3+2000-$promoter_end,\$4-2000+$promoter_start,\$5}}' homer_promoter_positions.txt > for_promoter_positions.txt
-    awk '\$3<0 {\$3=0} 1' OFS='\t' for_promoter_positions,txt > promoter_positions.txt
+    awk '\$3<0 {\$3=0} 1' OFS='\t' for_promoter_positions.txt > promoter_positions.txt
 
     """
 
