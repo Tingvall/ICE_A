@@ -652,6 +652,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   //Multiple mode specific
   val upset_plot from Channel.value(params.upset_plot)
   val circos_plot from Channel.value(params.circos_plot)
+  val circos_use_promoters from Channel.value(params.circos_use_promoters)
 
   //Differntial mode specific
   path peak_differential from ch_peak_differential_2
