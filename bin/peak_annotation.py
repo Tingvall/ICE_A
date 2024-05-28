@@ -35,6 +35,9 @@ argParser.add_argument('--close_promoter_distance_end', dest="CLOSE_PROMOTER_DIS
 argParser.add_argument('--close_promoter_bin', dest="CLOSE_PROMOTER_BIN", help="Specify distance for interaction close to but not overlapping TSS, upstream lf TSS if --close_promoter_type is bin. The option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from TSS to bin. Default: 1.", type=int)
 argParser.add_argument('--filter_close', dest="FILTER_CLOSE", help="Depending on the close peak/promoter options, the same peak can be annotated to the same gene from interactions in neighboring bins. This options specifies how to handle this: no_filter (no filtering), peak (filter on peak_bin_distance firs and than TSS_bin_distance), tss (filter on TSS_bin_distance firs and than peak_bin_distance) or sum (sum of absolite values of peak_bin_distance and TSS_bin_distance). Default: no_filter",choices=['peak','tss', 'sum', 'no_filter'])
 
+#Multiple mode specific arguments
+argParser.add_argument('--circos_use_promoters', dest="CIRCOS_USE_PROMOTERS", help="Specifies if TF overlap in promoters (defined based on promoter_start/end) should be used in circos plot in multiple mode when regions are specified.", choices=['true', 'false'])
+
 # Differntial mode specific arguments
 argParser.add_argument('--peak_differential', dest='PEAK_DIFFERENTIAL', help="Path to textfile that contain log2FC and adjusted p-value from differential analysis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the arguments --log2FC_column and --padj column.")
 argParser.add_argument('--log2FC_column', dest="LOG2FC_COLUMN", help="Log2FC column for differential peaks.", type=int)
@@ -46,7 +49,7 @@ argParser.add_argument('--skip_expression', dest="SKIP_EXPRESSION", help="Specif
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, promoter_pos, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance_start, close_promoter_distance_end, close_promoter_bin, filter_close, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
+def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_anno, promoter_pos, peak_name, prefix, proximity_unannotated, mode, multiple_anno, promoter_start, promoter_end, binsize, close_peak_type, close_peak_distance, skip_promoter_promoter, interaction_threshold, close_promoter_type, close_promoter_distance_start, close_promoter_distance_end, close_promoter_bin, filter_close, circos_use_promoters, peak_differential, log2FC_column, padj_column, log2FC, padj, skip_expression):
 
     # Column names for loaded data
     peak_anchor1_name = ('peak_chr', 'peak_start', 'peak_end','Peak_score', 'anchor1_chr', 'anchor1_start', 'anchor1_end', 'anchor1_id')
@@ -55,6 +58,11 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     # Load peak overlap for anchor 1 & 2, as well as annotated peak & 2D-bed files
     peak_anchor1 = pd.read_table(peak_anno_anchor1, index_col=3, names=peak_anchor1_name).sort_index()
     peak_anchor2 = pd.read_table(peak_anno_anchor2, index_col=3, names=peak_anchor2_name).sort_index()
+
+    if circos_use_promoters:
+        peak_anchor1 = peak_anchor1.loc['Peak_score' == 1,:]
+        peak_anchor2 = peak_anchor2.loc['Peak_score' == 1,:]
+
     peak_anno = pd.read_table(peak_anno,index_col=0).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
     bed2D_anno.rename(columns={bed2D_anno.columns[0]: 'chr1', bed2D_anno.columns[1]: 's1', bed2D_anno.columns[2]: 'e1', bed2D_anno.columns[3]: 'chr2', bed2D_anno.columns[4]: 's2', bed2D_anno.columns[5]: 'e2'}, inplace =True)
@@ -234,4 +242,4 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
 
 
 # RUN FUNCTION
-peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.CLOSE_PEAK_TYPE, close_peak_distance=args.CLOSE_PEAK_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, filter_close=args.FILTER_CLOSE, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
+peak_annotation(peak_anno_anchor1=args.PEAK_ANCHOR1,peak_anno_anchor2=args.PEAK_ANCHOR2,peak_anno=args.PEAK_ANNO,bed2D_index_anno=args.BED2D, promoter_pos=args.PROMOTER_POS, peak_name=args.PEAK_NAME, prefix=args.PREFIX, proximity_unannotated=args.PROXIMITY_UNANNOTATED, mode=args.MODE, multiple_anno=args.MULTIPLE_ANNO, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, binsize=args.BINSIZE, close_peak_type=args.CLOSE_PEAK_TYPE, close_peak_distance=args.CLOSE_PEAK_DISTANCE, skip_promoter_promoter= args.SKIP_PROMOTER_PROMOTER, interaction_threshold=args.INTERACTION_THRESHOLD,  close_promoter_type=args.CLOSE_PROMOTER_TYPE, close_promoter_distance_start=args.CLOSE_PROMOTER_DISTANCE_START, close_promoter_distance_end=args.CLOSE_PROMOTER_DISTANCE_END, close_promoter_bin=args.CLOSE_PROMOTER_BIN, filter_close=args.FILTER_CLOSE, circos_use_promoters=args.CIRCOS_USE_PROMOTERS, peak_differential=args.PEAK_DIFFERENTIAL, log2FC_column=args.LOG2FC_COLUMN, padj_column=args.PADJ_COLUMN, log2FC=args.LOG2FC, padj=args.PADJ, skip_expression=args.SKIP_EXPRESSION)
