@@ -269,7 +269,8 @@ process ANNOTATE_INTERACTION {
     val genome from Channel.value(params.genome)
     val env from Channel.value(params.env)
     path tss from ch_tss
-
+    val promoter_start from Channel.value(params.promoter_start)
+    val promoter_end from Channel.value(params.promoter_end)
 
     output:
     path "${anchor1.baseName}_anno.txt" into ch_anchor1_anno       // Annotated anchor bed files
@@ -282,7 +283,8 @@ process ANNOTATE_INTERACTION {
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
     cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss homer_promoter_positions.txt
-    awk -v FS='\t' -v OFS='\t' '{if (\$4==1) {print \$1,\$2+2000-2500,\$3-2000+2500,\$4} if (\$4==0) {print \$1,\$2+2000-2500,\$3-2000+2500,\$4}}' homer_promoter_positions.txt > promoter_positions.txt
+    awk -v FS='\t' -v OFS='\t' '{if (\$5==1) {print \$1,\$2,\$3+2000-$promoter_start,\$4-2000+$promoter_end,\$5} if (\$5==0) {print \$1,\$2,\$3+2000-$promoter_end,\$4-2000+$promoter_start,\$5}}' homer_promoter_positions.txt > for_promoter_positions.txt
+    awk '\$3<0 {\$3=0} 1' OFS='\t' for_promoter_positions,txt > promoter_positions.txt
 
     """
 
@@ -297,6 +299,7 @@ process ANNOTATE_INTERACTION {
     annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno_noIDs.txt
     awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor2.baseName}_anno_noIDs.txt > ${anchor2.baseName}_anno_na_not_removed.txt
     awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor2.baseName}_anno_na_not_removed.txt > ${anchor2.baseName}_anno.txt
+
     cp $tss promoter_positions.txt
     """
 }
