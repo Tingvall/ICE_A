@@ -678,7 +678,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
 
   else if (params.mode == 'multiple')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot}
+    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --circos_use_promoters $circos_use_promoters
     """
 
   else if (params.mode == 'differential')
