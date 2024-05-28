@@ -662,8 +662,9 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
 
   output:
   path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
-  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all
-  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_aggregated
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all_not_promoters
+  path "${prefix}_HOMER_annotated_interactions_with_peak_and_promoter.txt" optional true into ch_interactions_all_promoters
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_promoters_not_aggregated
   path "*_${prefix}_interactions_up.txt" optional true into ch_interactions_up
   path "*_${prefix}_interactions_down.txt" optional true into ch_interactions_down
 
@@ -683,6 +684,13 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     """
     interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
     """
+}
+
+if (params.mode == "multiple" && parmas.circos_use_promoters){
+  ch_interactions_all_promoters.set{ch_interactions_all}
+}
+else{
+  ch_interactions_all_not_promoters.set{ch_interactions_all}
 }
 
 /*
