@@ -266,13 +266,16 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     if filter_genes == 'true':
         genes = pd.read_table(genes, header=None)
-        Promoter_Gene_filt_f_org = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Target'])]
-        Promoter_Gene_filt_g_org = Promoter_Gene_filt_f_org[(Promoter_Gene_filt_f_org['Target'].isin(genes.iloc[:,0]))]
-        Distal_Promoter_filt_g_org = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
-        Factor_Distal_filt_g_org = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g_org['Source'])]
-        Factor_Promoter_filt_g_org = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
-        Factor_Distal_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Distal_genes.txt', index=False, sep='\t' )
-        Factor_Promoter_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Promoter_genes.txt', index=False, sep='\t' )
+        if (circos_use_promoters == "true"):
+            #???
+        else:
+            Promoter_Gene_filt_f_org = Promoter_Gene[Promoter_Gene['Source'].isin(Factor_Promoter['Target']) | Promoter_Gene['Source'].isin(Distal_Promoter_filt_f['Target'])]
+            Promoter_Gene_filt_g_org = Promoter_Gene_filt_f_org[(Promoter_Gene_filt_f_org['Target'].isin(genes.iloc[:,0]))]
+            Distal_Promoter_filt_g_org = Distal_Promoter_filt_f[Distal_Promoter_filt_f['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
+            Factor_Distal_filt_g_org = Factor_Distal[Factor_Distal['Target'].isin(Distal_Promoter_filt_g_org['Source'])]
+            Factor_Promoter_filt_g_org = Factor_Promoter[Factor_Promoter['Target'].isin(Promoter_Gene_filt_g_org['Source'])]
+            Factor_Distal_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Distal_genes.txt', index=False, sep='\t' )
+            Factor_Promoter_filt_g_org.loc[:,['Source', 'Target', 'Edge_type']].sort_index().reset_index().drop_duplicates().to_csv('UpSet_' + prefix + '_interactions_Promoter_genes.txt', index=False, sep='\t' )
 
 
 
