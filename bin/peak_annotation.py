@@ -60,8 +60,8 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     peak_anchor2 = pd.read_table(peak_anno_anchor2, index_col=3, names=peak_anchor2_name).sort_index()
 
     if circos_use_promoters:
-        peak_anchor1 = peak_anchor1.loc['Peak_score' == 1,:]
-        peak_anchor2 = peak_anchor2.loc['Peak_score' == 1,:]
+        peak_anchor1 = peak_anchor1[peak_anchor1['Peak_score'] == 1]
+        peak_anchor2 = peak_anchor2[peak_anchor2['Peak_score'] == 1]
 
     peak_anno = pd.read_table(peak_anno,index_col=0).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
@@ -130,7 +130,7 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
         Proximal_Distal = Proximal_Distal.loc[~((Proximal_Distal.Peak_type =='Promoter') & (Proximal_Distal.Annotation_method =='Interaction_anno')),:]
 
     # Assigning distance to TSS for the annotation (not closest gene) using HOMER TSS position
-    promoter_pos["TSS"] = (promoter_pos.TSS_start+promoter_pos.TSS_end)/2
+    promoter_pos['TSS'] = np.where(promoter_pos['TSS_strand'] == 1 , promoter_pos.TSS_end-promoter_end, promoter_pos.TSS_end-promoter_start)))
     Proximal_Distal=Proximal_Distal.merge(promoter_pos.loc[:,["TSS", "TSS_strand"]], left_on='Refseq', right_index=True, how = 'left')
     Proximal_Distal["Distance_to_TSS_int"] = np.where(Proximal_Distal['TSS_strand'] ==0, ((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS, np.where(Proximal_Distal['TSS_strand'] ==1,-(((Proximal_Distal.Start+Proximal_Distal.End)/2)-Proximal_Distal.TSS),np.nan))
     Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS'] = Proximal_Distal.loc[Proximal_Distal['Annotation_method'] =='Interaction_anno', 'Distance_to_TSS_int']
