@@ -686,7 +686,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
     """
 }
 
-if (params.mode == "multiple" && parmas.circos_use_promoters){
+if (params.mode == "multiple" && params.circos_use_promoters){
   ch_interactions_all_promoters.set{ch_interactions_all}
 }
 else{
