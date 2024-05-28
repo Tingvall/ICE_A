@@ -59,9 +59,9 @@ def peak_annotation(peak_anno_anchor1,peak_anno_anchor2,peak_anno, bed2D_index_a
     peak_anchor1 = pd.read_table(peak_anno_anchor1, index_col=3, names=peak_anchor1_name).sort_index()
     peak_anchor2 = pd.read_table(peak_anno_anchor2, index_col=3, names=peak_anchor2_name).sort_index()
 
-    if (circos_use_promoters == 'true' and peak_name!="ALL"):
-        peak_anchor1 = peak_anchor1[peak_anchor1['Peak_score'] == 1]
-        peak_anchor2 = peak_anchor2[peak_anchor2['Peak_score'] == 1]
+    #if (circos_use_promoters == 'true' and peak_name!="ALL"):
+    peak_anchor1 = peak_anchor1[peak_anchor1['Peak_score'] == 1]
+    peak_anchor2 = peak_anchor2[peak_anchor2['Peak_score'] == 1]
 
     peak_anno = pd.read_table(peak_anno,index_col=0).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
