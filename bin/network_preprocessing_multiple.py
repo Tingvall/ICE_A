@@ -75,7 +75,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     #Distal-Promoter
     if (circos_use_promoters == "true"):
         DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Peak1_score'] == 1) & (interactions_anno['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == 0), ['Anchor1','Anchor2', 'Interaction_score']]
-        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
+        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Peak1_score'] == 0) & (interactions_anno['Is_Promoter_2'] == 0) & (interactions_anno['Peak2_score'] == 1), ['Anchor2','Anchor1', 'Interaction_score']]
     else:
         DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']]
         DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
@@ -87,15 +87,20 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Distal_Promoter.to_csv('Distal_promoter_for_circos.txt', index=True, sep='\t' )
 
     #Promoter-Promoter
-    Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
+    if (circos_use_promoters == "true"):
+        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Peak1_score'] == 0) & (interactions_anno['Is_Promoter_2']==1) & (interactions_anno['Peak2_score'] == 0) ,:][['Anchor1', 'Anchor2', 'Interaction_score']]
+    else:
+        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
     Promoter_Promoter['Edge_type'] = 'Promoter-Promoter'
     Promoter_Promoter.columns = ['Source', 'Target', 'Edge_score', 'Edge_type']
     Promoter_Promoter['Edge_score'] = - np.log10(Promoter_Promoter['Edge_score'])
 
     #Promoter-Gene
-    Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
+    if (circos_use_promoters == "true"):
+    else:
+        Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
+        Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_1.columns = ['Source', 'Target']
-    Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
     Promoter_Gene_2.columns = ['Source', 'Target']
     Promoter_Gene = Promoter_Gene_1.append(Promoter_Gene_2)
     Promoter_Gene['Edge_score'], Promoter_Gene['Edge_type'] = [1, 'Promoter-Gene']
