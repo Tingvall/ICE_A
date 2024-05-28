@@ -282,7 +282,6 @@ process ANNOTATE_INTERACTION {
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
     cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss homer_promoter_positions.txt
-    homer_promoter_positions.txt
     awk -v FS='\t' -v OFS='\t' '{if (\$4==1) {print \$1,\$2+2000-2500,\$3-2000+2500,\$4} if (\$4==0) {print \$1,\$2+2000-2500,\$3-2000+2500,\$4}}' homer_promoter_positions.txt > promoter_positions.txt
 
     """
