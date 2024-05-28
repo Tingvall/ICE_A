@@ -267,6 +267,7 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
+    val env from Channel.value(params.env)
     path tss from ch_tss
 
 
