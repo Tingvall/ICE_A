@@ -84,6 +84,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Distal_Promoter = DP_1.append(DP_2)
     Distal_Promoter['Edge_type'] = 'Distal-Promoter'
     Distal_Promoter['Edge_score'] = - np.log10(Distal_Promoter['Edge_score'])
+    if (circos_use_promoters == "true"):
+        Distal_Promoter = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
     Distal_Promoter.to_csv('Distal_promoter_for_circos.txt', index=True, sep='\t' )
 
     #Promoter-Promoter
