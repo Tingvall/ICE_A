@@ -91,6 +91,12 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
             ch_peaks.into{ ch_peaks_split_1; ch_peaks_split_2}
           }
 
+def criteria = multiMapCriteria {
+                     sample: it[0]
+                     peaks_beds: it[1]
+                   }
+ch_peaks_split_2.multiMap(criteria).into {ch_peaks_multi_1; ch_peaks_multi_2}
+
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
@@ -109,12 +115,15 @@ else {
   ch_genes = file(params.genes)
 }
 
-if (params.in_regions != 'all') {
-  if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
-    ch_for_regions.first().set{ch_in_regions}
+if (params.in_regions == 'Not_specified') {
+  ch_in_regions = file(params.in_regions)
+}
+else if (params.in_regions == 'consensus'){
+  ch_peaks_multi_2.set{ch_for_in_regions}
 }
 else {
-  ch_in_regions = file(params.in_regions)
+  if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
+    ch_for_regions.first().set{ch_in_regions}
 }
 
 
@@ -285,7 +294,6 @@ process ANNOTATE_INTERACTION {
     cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss homer_promoter_positions.txt
     awk -v FS='\t' -v OFS='\t' '{if (\$5==1) {print \$1,\$2,\$3+2000-$promoter_start,\$4-2000+$promoter_end,\$5} if (\$5==0) {print \$1,\$2,\$3+2000-$promoter_end,\$4-2000+$promoter_start,\$5}}' homer_promoter_positions.txt > for_promoter_positions.txt
     awk '\$3<0 {\$3=0} 1' OFS='\t' for_promoter_positions.txt > promoter_positions.txt
-
     """
 
     else
@@ -337,13 +345,39 @@ if (params.skip_anno) {
 }
 
 /*
+ * 3.5.0
+ */
+process OVERLAP_REGIONS_0 {
+  publishDir "${params.outdir}/tmp/process3.5.0", mode: 'copy', enabled: params.save_tmp
+
+  when:
+  params.mode =="multiple" && params.in_regions == "consensus"
+
+  input:
+  val sample from ch_for_in_regions.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_for_in_regions.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+
+  output:
+  path "consensus_in_regions.bed" into ch_in_regions
+
+  script:
+    """
+    cat $peak_beds > peaks_all.beds
+    cut -f1-3 peaks_all.bed | sort -k1,1 -k2,2n > peaks_all_sort.bed
+    bedtools merge -i peaks_all_sort.bed > consensus_in_regions.bed
+    """
+
+}
+
+
+/*
  * 3.5.1
  */
 process OVERLAP_REGIONS_1 {
   publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
 
   when:
-  params.in_regions != "Not_specified"
+  params.mode =="multiple" && params.in_regions != "Not_specified"
 
   input:
   tuple val(peak_name), path(peak_file) from ch_peaks_split_1
@@ -354,7 +388,7 @@ process OVERLAP_REGIONS_1 {
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
 
   script:
-  if (params.mode =="multiple" && params.circos_use_promoters)
+  if (params.circos_use_promoters)
     """
     bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_regions.bed
     awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' ${peak_name}_regions.bed > ${peak_name}_regions_info.bed
@@ -372,12 +406,6 @@ process OVERLAP_REGIONS_1 {
     """
 }
 
-def criteria = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
-ch_peaks_split_2.multiMap(criteria).set {ch_peaks_multi}
-
 /*
  * 3.5.2
  */
@@ -389,8 +417,8 @@ process OVERLAP_REGIONS_2 {
 
   input:
   path in_regions from ch_in_regions
-  val sample from ch_peaks_multi.sample.collect().map{ it2 -> it2.join(' ')}
-  val peak_beds from ch_peaks_multi.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+  val sample from ch_peaks_multi_1.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_peaks_multi_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
 
   output:
