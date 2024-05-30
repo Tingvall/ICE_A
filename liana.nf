@@ -719,6 +719,7 @@ val network_distal_only from Channel.value(params.network_distal_only)
 val upset_plot from Channel.value(params.upset_plot)
 val circos_plot from Channel.value(params.circos_plot)
 val filter_genes from Channel.value(params.filter_genes)
+val circos_use_promoters from Channel.value(params.circos_use_promoters)
 
 //Differntial mode specific
 path peak_differential from ch_peak_differential_3
@@ -758,7 +759,7 @@ if (params.mode == 'basic')
 
 else if (params.mode == 'multiple')
   """
-  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only} --circos_use_promoters $circos_use_promoters
   """
 
 else if (params.mode == 'differential')

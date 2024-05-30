@@ -37,10 +37,17 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     interactions_anno = pd.read_table(interactions_annotated, index_col=0)
 
     # Aggregating interaction file to only incude one row per interaction
-    interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
-    interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
-    interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
-    interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
+    if (circos_use_promoters == "true"):
+        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,9,10:15, 16, 19,20:len(anchors_peaks_anno.columns)]]
+        interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
+        interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
+        interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:7], interactions_anno['Anchor2'],interactions_anno.iloc[:,10:(len(interactions_anno.columns)-2)]], axis=1)
+
+    else:
+        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
+        interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
+        interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
+        interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
 
     # Factor-Interaction
     Factor_Interaction_all = anchors_peaks_anno[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID', 'Peak1_score', 'chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score', 'Is_Promoter_1', 'Is_Promoter_2']]
@@ -74,8 +81,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     #Distal-Promoter
     if (circos_use_promoters == "true"):
-        DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Peak1_score'] == 1) & (interactions_anno['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == 0), ['Anchor1','Anchor2', 'Interaction_score']]
-        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Peak1_score'] == 0) & (interactions_anno['Is_Promoter_2'] == 0) & (interactions_anno['Peak2_score'] == 1), ['Anchor2','Anchor1', 'Interaction_score']]
+        DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Peak1_score'] == "1.0") & (interactions_anno['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == "0.0"), ['Anchor1','Anchor2', 'Interaction_score']]
+        DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Peak1_score'] == "0.0") & (interactions_anno['Is_Promoter_2'] == 0) & (interactions_anno['Peak2_score'] == "1.0"), ['Anchor2','Anchor1', 'Interaction_score']]
     else:
         DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']]
         DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']]
@@ -84,8 +91,6 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Distal_Promoter = DP_1.append(DP_2)
     Distal_Promoter['Edge_type'] = 'Distal-Promoter'
     Distal_Promoter['Edge_score'] = - np.log10(Distal_Promoter['Edge_score'])
-    if (circos_use_promoters == "true"):
-        Distal_Promoter = Distal_Promoter[Distal_Promoter['Source'].isin(Factor_Distal['Target'])]
     Distal_Promoter.to_csv('Distal_promoter_for_circos.txt', index=True, sep='\t' )
 
     #Promoter-Promoter
