@@ -88,10 +88,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Distal_Promoter.to_csv('Distal_promoter_for_circos.txt', index=True, sep='\t' )
 
     #Promoter-Promoter
-    if (circos_use_promoters == "true"):
-        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Peak1_score'] == "0.0") & (interactions_anno['Is_Promoter_2']==1) & (interactions_anno['Peak2_score'] == "0.0") ,:][['Anchor1', 'Anchor2', 'Interaction_score']]
-    else:
-        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
+    Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
     Promoter_Promoter['Edge_type'] = 'Promoter-Promoter'
     Promoter_Promoter.columns = ['Source', 'Target', 'Edge_score', 'Edge_type']
     Promoter_Promoter['Edge_score'] = - np.log10(Promoter_Promoter['Edge_score'])
