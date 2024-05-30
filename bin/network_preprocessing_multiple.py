@@ -95,7 +95,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     #Promoter-Promoter
     if (circos_use_promoters == "true"):
-        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Peak1_score'] == 0) & (interactions_anno['Is_Promoter_2']==1) & (interactions_anno['Peak2_score'] == 0) ,:][['Anchor1', 'Anchor2', 'Interaction_score']]
+        Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Peak1_score'] == "0.0") & (interactions_anno['Is_Promoter_2']==1) & (interactions_anno['Peak2_score'] == "0.0") ,:][['Anchor1', 'Anchor2', 'Interaction_score']]
     else:
         Promoter_Promoter = interactions_anno.loc[(interactions_anno['Is_Promoter_1']==1) & (interactions_anno['Is_Promoter_2']==1),:][['Anchor1', 'Anchor2', 'Interaction_score']]
     Promoter_Promoter['Edge_type'] = 'Promoter-Promoter'
@@ -104,8 +104,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     #Promoter-Gene
     if (circos_use_promoters == "true"):
-        Promoter_Gene_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (interactions_anno['Peak1_score'] == 0) & (interactions_anno['Is_Promoter_2']==0) & (interactions_anno['Peak2_score'] == 1), ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
-        Promoter_Gene_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == 0) & (interactions_anno['Is_Promoter_1']==0) & (interactions_anno['Peak1_score'] == 1), ['Anchor2', 'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
+        Promoter_Gene_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (interactions_anno['Peak1_score'] == "0.0") & (interactions_anno['Is_Promoter_2']==0) & (interactions_anno['Peak2_score'] == "1.0"), ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
+        Promoter_Gene_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_2'] == 1) & (interactions_anno['Peak2_score'] == "0.0") & (interactions_anno['Is_Promoter_1']==0) & (interactions_anno['Peak1_score'] == "1.0"), ['Anchor2', 'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
     else:
         Promoter_Gene_1 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_1'] == 1, ['Anchor1', 'Gene_Name_1']].dropna(subset=['Gene_Name_1']).reset_index().drop_duplicates().set_index('Interaction')
         Promoter_Gene_2 = Factor_Interaction.loc[Factor_Interaction['Is_Promoter_2'] == 1, ['Anchor2',  'Gene_Name_2']].dropna(subset=['Gene_Name_2']).reset_index().drop_duplicates().set_index('Interaction')
