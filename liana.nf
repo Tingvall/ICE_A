@@ -96,15 +96,10 @@ def criteria = multiMapCriteria {
                      peaks_beds: it[1]
                    }
 
-if (params.in_regions == 'consensus'){
-  ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi}
-  ch_for_peaks_multi.into{ch_peaks_multi_1; ch_peaks_multi_2}
+ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi}
+ch_for_peaks_multi.into{ch_peaks_multi_1; ch_peaks_multi_2}
+ch_peaks_multi_2.set{ch_for_in_regions}
 
-}
-else{
-  ch_peaks_split_2.multiMap(criteria).set{ch_peaks_multi_1}
-
-}
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
@@ -123,11 +118,8 @@ else {
   ch_genes = file(params.genes)
 }
 
-if (params.in_regions == 'Not_specified') {
+if (params.in_regions == 'Not_specified' | params.in_regions == 'consensus') {
   ch_in_regions = file(params.in_regions)
-}
-else if (params.in_regions == 'consensus'){
-  ch_peaks_multi_2.set{ch_for_in_regions}
 }
 else {
   if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
