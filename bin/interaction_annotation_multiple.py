@@ -21,12 +21,12 @@ argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all 
 argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
 argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Defult:Not_specified")
 
 # Multiple mode specific arguments
 argParser.add_argument('--upset_plot', dest="UPSET_PLOT", help="Specifies if Upset plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if Circos plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--circos_use_promoters', dest="CIRCOS_USE_PROMOTERS", help="Specifies if TF overlap in promoters (defined based on promoter_start/end) should be used in circos plot in multiple mode when regions are specified.", choices=['true', 'false'])
-argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Deafult: false", choices=['true', 'false'])
 
 args = argParser.parse_args()
 

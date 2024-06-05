@@ -20,13 +20,13 @@ argParser.add_argument('--network_mode', dest="NETWORK_MODE", help="Defines mode
 argParser.add_argument('--promoter_promoter', dest="PROMOTER_PROMOTER", help="If set to true, promoter-promoter interactions included in network (default: false).", choices=['true', 'false'])
 argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all available processes for the selected mode and provided inputs are run.", choices=['true', 'false'])
 argParser.add_argument('--network_distal_only', dest="NETWORK_DISTAL_ONLY", help="If true, only distal factor binding are shown in the netork.", choices=['true', 'false'])
+argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Defult:Not_specified")
 
 # Multiple mode specific arguments
 argParser.add_argument('--upset_plot', dest="UPSET_PLOT", help="Specifies if Upset plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if Circos plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--filter_genes', dest="FILTER_GENES", help="Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided gene list (default: false). This option requires that a gene list is provided with the argument --genes.", choices=['true', 'false'])
 argParser.add_argument('--circos_use_promoters', dest="CIRCOS_USE_PROMOTERS", help="Specifies if TF overlap in promoters (defined based on promoter_start/end) should be used in circos plot in multiple mode when regions are specified.", choices=['true', 'false'])
-argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Deafult: false", choices=['true', 'false'])
 
 args = argParser.parse_args()
 
