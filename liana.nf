@@ -97,10 +97,12 @@ def criteria = multiMapCriteria {
                    }
 
 if (params.in_regions == 'consensus'){
-  ch_peaks_split_2.multiMap(criteria).into{ch_peaks_multi_1; ch_peaks_multi_2}
+  ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi}
+  ch_for_peaks_multi.into{ch_peaks_multi_1; ch_peaks_multi_2}
+
 }
 else{
-  ch_peaks_split_2.multiMap(criteria).into{ch_peaks_multi_1}
+  ch_peaks_split_2.multiMap(criteria).set{ch_peaks_multi_1}
 
 }
 
