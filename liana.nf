@@ -95,8 +95,14 @@ def criteria = multiMapCriteria {
                      sample: it[0]
                      peaks_beds: it[1]
                    }
-ch_peaks_split_2.multiMap(criteria).into {ch_peaks_multi_1; ch_peaks_multi_2}
 
+if (params.in_regions == 'consensus'){
+  ch_peaks_split_2.multiMap(criteria).into {ch_peaks_multi_1; ch_peaks_multi_2}
+}
+else{
+  ch_peaks_split_2.multiMap(criteria).into {ch_peaks_multi_1}
+
+}
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
