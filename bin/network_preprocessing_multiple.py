@@ -26,11 +26,12 @@ argParser.add_argument('--upset_plot', dest="UPSET_PLOT", help="Specifies if Ups
 argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if Circos plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--filter_genes', dest="FILTER_GENES", help="Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided gene list (default: false). This option requires that a gene list is provided with the argument --genes.", choices=['true', 'false'])
 argParser.add_argument('--circos_use_promoters', dest="CIRCOS_USE_PROMOTERS", help="Specifies if TF overlap in promoters (defined based on promoter_start/end) should be used in circos plot in multiple mode when regions are specified.", choices=['true', 'false'])
+argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Deafult: false", choices=['true', 'false'])
 
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def network_preprocessing_multiple(interactions_annotated, interactions_annotated_not_aggregated, genes, prefix, network_mode, promoter_promoter, upset_plot, circos_plot, filter_genes, complete, network_distal_only, circos_use_promoters):
+def network_preprocessing_multiple(interactions_annotated, interactions_annotated_not_aggregated, genes, prefix, network_mode, promoter_promoter, upset_plot, circos_plot, filter_genes, complete, network_distal_only, circos_use_promoters, in_regions):
 
     #Loading input file
     anchors_peaks_anno = pd.read_table(interactions_annotated_not_aggregated, index_col=0)
@@ -292,4 +293,4 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
 
 # RUN FUNCTION
-network_preprocessing_multiple(interactions_annotated=args.INTERACTIONS_ANNO_AGG, interactions_annotated_not_aggregated=args.INTERACTIONS_ANNO, genes=args.GENES, prefix=args.PREFIX, network_mode=args.NETWORK_MODE, promoter_promoter=args.PROMOTER_PROMOTER, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT, filter_genes=args.FILTER_GENES, complete=args.COMPLETE, network_distal_only=args.NETWORK_DISTAL_ONLY, circos_use_promoters=args.CIRCOS_USE_PROMOTERS)
+network_preprocessing_multiple(interactions_annotated=args.INTERACTIONS_ANNO_AGG, interactions_annotated_not_aggregated=args.INTERACTIONS_ANNO, genes=args.GENES, prefix=args.PREFIX, network_mode=args.NETWORK_MODE, promoter_promoter=args.PROMOTER_PROMOTER, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT, filter_genes=args.FILTER_GENES, complete=args.COMPLETE, network_distal_only=args.NETWORK_DISTAL_ONLY, circos_use_promoters=args.CIRCOS_USE_PROMOTERS, in_regions=args.IN_REGIONS)

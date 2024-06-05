@@ -690,6 +690,7 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   val binsize from Channel.value(params.binsize)
   val promoter_start from Channel.value(params.promoter_start)
   val promoter_end from Channel.value(params.promoter_end)
+  val in_regions from Channel.value(params.in_regions)
 
   //Multiple mode specific
   val upset_plot from Channel.value(params.upset_plot)
@@ -715,17 +716,17 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   script:
   if (params.mode == 'basic')
     """
-    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end}
+    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --in_regions $in_regions
     """
 
   else if (params.mode == 'multiple')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --circos_use_promoters $circos_use_promoters
+    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --circos_use_promoters $circos_use_promoters --in_regions $in_regions
     """
 
   else if (params.mode == 'differential')
     """
-    interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
+    interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --in_regions $in_regions
     """
 }
 
@@ -756,6 +757,7 @@ val network_mode from Channel.value(params.network_mode)
 val complete from Channel.value(params.complete)
 val promoter_promoter from Channel.value(params.promoter_promoter)
 val network_distal_only from Channel.value(params.network_distal_only)
+val in_regions from Channel.value(params.in_regions)
 
 //Multiple mode specific
 val upset_plot from Channel.value(params.upset_plot)
@@ -796,17 +798,17 @@ path "Distal_promoter_for_circos.txt" optional true into ch_distal_promoter
 script:
 if (params.mode == 'basic')
   """
-  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete} --network_distal_only ${network_distal_only} --in_regions $in_regions
   """
 
 else if (params.mode == 'multiple')
   """
-  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only} --circos_use_promoters $circos_use_promoters
+  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only} --circos_use_promoters $circos_use_promoters --in_regions $in_regions
   """
 
 else if (params.mode == 'differential')
   """
-  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete} --network_distal_only ${network_distal_only} --in_regions $in_regions
   """
 }
 

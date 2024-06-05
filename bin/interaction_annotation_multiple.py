@@ -26,11 +26,12 @@ argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies th
 argParser.add_argument('--upset_plot', dest="UPSET_PLOT", help="Specifies if Upset plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--circos_plot', dest="CIRCOS_PLOT", help="Specifies if Circos plot of peak overlap will be created.", choices=['true', 'false'])
 argParser.add_argument('--circos_use_promoters', dest="CIRCOS_USE_PROMOTERS", help="Specifies if TF overlap in promoters (defined based on promoter_start/end) should be used in circos plot in multiple mode when regions are specified.", choices=['true', 'false'])
+argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Deafult: false", choices=['true', 'false'])
 
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, network, complete, binsize, promoter_start, promoter_end, upset_plot, circos_plot, circos_use_promoters):
+def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, network, complete, binsize, promoter_start, promoter_end, upset_plot, circos_plot, circos_use_promoters, in_regions):
 
     # Column names for loaded data
     anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_ID', 'Peak1_score')
@@ -106,4 +107,4 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
 
 
 # RUN FUNCTION
-interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT, circos_use_promoters=args.CIRCOS_USE_PROMOTERS)
+interaction_annotation_multiple(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, upset_plot=args.UPSET_PLOT, circos_plot=args.CIRCOS_PLOT, circos_use_promoters=args.CIRCOS_USE_PROMOTERS, in_regions=args.IN_REGIONS)
