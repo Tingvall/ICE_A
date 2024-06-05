@@ -659,8 +659,8 @@ process INTERACTION_PEAK_INTERSECT {
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $in_regions > Anchor_1_region_overlap.bed
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $in_regions > Anchor_2_region_overlap.bed
 
-    awk '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
-    awk '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
 
     bedtools intersect -wa -wb -a Anchor_1_in_regions.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
     bedtools intersect -wa -wb -a Anchor_2_in_regions.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
