@@ -97,7 +97,7 @@ def criteria = multiMapCriteria {
                    }
 
 ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi_1}
-ch_peaks_split_3.multiMap(criteria).set{ch_for_peaks_multi_1}
+ch_peaks_split_3.multiMap(criteria).set{ch_for_peaks_multi_2}
 ch_peaks_multi_2.set{ch_for_in_regions}
 
 
