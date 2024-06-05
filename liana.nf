@@ -358,7 +358,7 @@ process OVERLAP_REGIONS_0 {
   val peak_beds from ch_for_in_regions.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
   output:
-  path "consensus_in_regions.bed" into ch_in_regions
+  path "consensus_in_regions.bed" into ch_for_in_regions_2
 
   script:
     """
@@ -368,7 +368,9 @@ process OVERLAP_REGIONS_0 {
     """
 
 }
-
+if (params.mode =="multiple" && params.in_regions == "consensus") {
+  ch_for_in_regions_2.first().set{ch_in_regions}
+}
 
 /*
  * 3.5.1
@@ -632,7 +634,7 @@ process INTERACTION_PEAK_INTERSECT {
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
-
+  path in_regions from ch_in_regions
 
   output:
   path "Anchor_1_peak_collect.bed" into ch_anchor_1_peak_collect
@@ -646,10 +648,22 @@ process INTERACTION_PEAK_INTERSECT {
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds > Anchor_2_peak_collect.bed
     """
 
-  else if (params.mode == 'multiple')
+  else if (params.mode == 'multiple' && params.in_regions == "Not_specified")
     """
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.mode == 'multiple' && params.in_regions != "Not_specified")
+    """
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $in_regions > Anchor_1_region_overlap.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $in_regions > Anchor_2_region_overlap.bed
+
+    awk '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
+    awk '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
+
+    bedtools intersect -wa -wb -a Anchor_1_in_regions.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
+    bedtools intersect -wa -wb -a Anchor_2_in_regions.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
     """
 }
 
