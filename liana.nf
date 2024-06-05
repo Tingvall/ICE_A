@@ -85,10 +85,10 @@ if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists:
           .set{ch_peaks}
 
           if (params.in_regions == "Not_specified"){
-            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split_1; ch_peaks_split_2}
+            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split_1; ch_peaks_split_2;ch_peaks_split_3}
           }
           else{
-            ch_peaks.into{ ch_peaks_split_1; ch_peaks_split_2}
+            ch_peaks.into{ ch_peaks_split_1; ch_peaks_split_2;ch_peaks_split_3}
           }
 
 def criteria = multiMapCriteria {
@@ -96,8 +96,8 @@ def criteria = multiMapCriteria {
                      peaks_beds: it[1]
                    }
 
-ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi}
-ch_for_peaks_multi.into{ch_peaks_multi_1; ch_peaks_multi_2}
+ch_peaks_split_2.multiMap(criteria).set{ch_for_peaks_multi_1}
+ch_peaks_split_3.multiMap(criteria).set{ch_for_peaks_multi_1}
 ch_peaks_multi_2.set{ch_for_in_regions}
 
 
