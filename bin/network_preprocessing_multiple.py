@@ -59,7 +59,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Interaction = Factor_Interaction_all.dropna(subset=['Peak1', 'Peak2'], thresh=1)
 
     #Factor-Distal
-    if (in_regions !="Not_specified" && circos_use_promoters == "true"):
+    if (in_regions !="Not_specified" and circos_use_promoters == "true"):
         Factor_Distal_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Peak1_score'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 1) & (Factor_Interaction['Peak2_score'] == 0), ['Peak1',  'Peak1_ID', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
         Factor_Distal_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Peak1_score'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 0) & (Factor_Interaction['Peak2_score'] == 1), ['Peak2',  'Peak2_ID', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     else:
@@ -71,7 +71,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Distal['Edge_type'] = 'Factor-Distal'
 
     #Factor-Promoter
-    if (in_regions !="Not_specified" && circos_use_promoters == "true"):
+    if (in_regions !="Not_specified" and circos_use_promoters == "true"):
         Factor_Promoter_1 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 1) & (Factor_Interaction['Peak1_score'] == 0) & (Factor_Interaction['Is_Promoter_2'] == 0) & (Factor_Interaction['Peak2_score'] == 1), ['Peak1',  'Peak1_ID', 'Peak1_score']].dropna(subset=['Peak1']).reset_index().drop_duplicates().set_index('Interaction')
         Factor_Promoter_2 = Factor_Interaction.loc[(Factor_Interaction['Is_Promoter_1'] == 0) & (Factor_Interaction['Peak1_score'] == 1) & (Factor_Interaction['Is_Promoter_2'] == 1) & (Factor_Interaction['Peak2_score'] == 0), ['Peak2',  'Peak2_ID', 'Peak2_score']].dropna(subset=['Peak2']).reset_index().drop_duplicates().set_index('Interaction')
     else:
@@ -83,7 +83,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
 
     #Distal-Promoter
-    if (in_regions !="Not_specified" && circos_use_promoters == "true"):
+    if (in_regions !="Not_specified" and circos_use_promoters == "true"):
         DP_1 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 0) & (interactions_anno['Is_Promoter_2'] == 1), ['Anchor1','Anchor2', 'Interaction_score']].reset_index().drop_duplicates().set_index('Interaction')
         DP_2 = interactions_anno.loc[(interactions_anno['Is_Promoter_1'] == 1) & (interactions_anno['Is_Promoter_2'] == 0), ['Anchor2',  'Anchor1', 'Interaction_score']].reset_index().drop_duplicates().set_index('Interaction')
     else:
