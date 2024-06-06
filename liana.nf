@@ -659,7 +659,9 @@ process INTERACTION_PEAK_INTERSECT {
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
-  path in_regions from ch_in_region_bed
+  //path in_regions from ch_in_region_bed
+  tuple val(regions), path(in_regions) from ch_in_region_bed
+
 
   output:
   path "Anchor_1_peak_collect.bed" into ch_anchor_1_peak_collect
