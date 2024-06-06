@@ -38,8 +38,8 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     anchor2_peak_name = ('Anchor2_Chr', 'Anchor2_Start', 'Anchor2_End', 'Peak2', 'Peak2_Chr', 'Peak2_Start', 'Peak2_End', 'Peak2_ID', 'Peak2_score')
 
     # Load interaction centered peak overlaps 2and annotated 2D-bed
-    anchor1_peaks = pd.read_table(anchor_1_peak_collect, index_col=3,names=anchor1_peak_name).sort_index()
-    anchor2_peaks = pd.read_table(anchor_2_peak_collect, index_col=3,names=anchor2_peak_name).sort_index()
+    anchor1_peaks = pd.read_table(anchor_1_peak_collect, index_col=3,names=anchor1_peak_name).sort_index().drop_duplicates()
+    anchor2_peaks = pd.read_table(anchor_2_peak_collect, index_col=3,names=anchor2_peak_name).sort_index().drop_duplicates()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
 
     # Create Peak columns (chr:start-end) for anchor 1 & 2
