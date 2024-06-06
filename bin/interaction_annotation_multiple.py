@@ -54,6 +54,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
         anchors_peaks_anno = anchors_peaks_anno.iloc[:,np.r_[4:7,0:4,7:10,14:17,10:14,17:21]]
         anchors_peaks_anno.rename(columns = {'Anchor1_Chr': 'chr1', 'Anchor1_Start': 's1','Anchor1_End': 'e1','Anchor2_Chr': 'chr2', 'Anchor2_Start': 's2','Anchor2_End': 'e2'}, inplace = True)
         anchors_peaks_anno = anchors_peaks_anno.dropna(subset=['chr1', 'chr2'])
+        anchors_peaks_anno.index = anchors_peaks_anno["Peak1_ID"].map(str) +'_'+ (anchors_peaks_anno["Peak2_ID"]).map(str)
 
     else:
         anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1', 'e1','Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')

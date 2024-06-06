@@ -43,15 +43,10 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     interactions_anno =  interactions_anno[interactions_anno.index.isin(anchors_peaks_anno.index)]
 
     # Aggregating interaction file to only incude one row per interaction
-    if (in_regions !="Not_specified"):
-        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
-        interactions_anno = pd.concat([interactions_anno['Peak1_ID'], interactions_anno.iloc[:,3:6], interactions_anno['Peak2_ID'],interactions_anno.iloc[:,9:(len(interactions_anno.columns))]], axis=1)
-
-    else:
-        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
-        interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
-        interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
-        interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
+    interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
+    interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"]).map(str) +'-'+ interactions_anno["e1"].map(str)
+    interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"]).map(str) +'-'+ interactions_anno["e2"].map(str)
+    interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
 
     # Factor-Interaction
     Factor_Interaction_all = anchors_peaks_anno[['chr1', 's1', 'e1','Gene_Name_1', 'Peak1','Peak1_ID', 'Peak1_score', 'chr2', 's2', 'e2',  'Gene_Name_2','Peak2','Peak2_ID','Peak2_score', 'Is_Promoter_1', 'Is_Promoter_2']]
