@@ -434,7 +434,7 @@ process OVERLAP_REGIONS_2 {
     """
     cut -f2-4 $promoter_positions > promoter_positions.bed
     cat $in_regions promoter_positions.bed > in_regions_promoter.bed
-    bedtools intersect -a in_regions_promoter -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
+    bedtools intersect -a in_regions_promoter.bed -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
 
     awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' promoter_positions.bed > promoter_positions_info.bed
     awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions_info.bed
