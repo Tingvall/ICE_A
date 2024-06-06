@@ -104,7 +104,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
         factor_dict[f].loc[factor_dict[f].Peak1 !=f,['Peak1', 'Peak1_ID', 'Peak1_score']] = ''
         factor_dict[f].loc[factor_dict[f].Peak2 !=f,['Peak2', 'Peak2_ID', 'Peak2_score']] = ''
         if (circos_use_promoters == "true"):
-            factor_dict[f] = factor_dict[f][(factor_dict[f]["Peak1_score"]==1) | (factor_dict[f]["Peak2_score"]==1)]
+            factor_dict[f] = factor_dict[f].loc[(factor_dict[f]["Peak1_score"]==1 and factor_dict[f]["Peak2_score"]==0) | (factor_dict[f]["Peak1_score"]==0 and factor_dict[f]["Peak2_score"]==1),:]
         factor_dict[f] = factor_dict[f].groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x.unique().astype(str)))))
 
     # Saving annotated interactions files (all interaction and interactions with peak overlap)
@@ -114,7 +114,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     if (in_regions !="Not_specified" and circos_use_promoters == "true"):
         anchors_peaks_anno_promoters = anchors_peaks_anno.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x[x!="REGIONS"].unique().astype(str)))))
         anchors_peaks_anno_promoters.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_and_promoter.txt', index=True, sep='\t' )
-        anchors_peaks_anno_filt = anchors_peaks_anno[(anchors_peaks_anno["Peak1_score"]==1 and anchors_peaks_anno["Peak2_score"]==0) | (anchors_peaks_anno["Peak1_score"]==0 and anchors_peaks_anno["Peak2_score"]==1)]
+        anchors_peaks_anno_filt = anchors_peaks_anno.loc[(anchors_peaks_anno["Peak1_score"]==1 and anchors_peaks_anno["Peak2_score"]==0) | (anchors_peaks_anno["Peak1_score"]==0 and anchors_peaks_anno["Peak2_score"]==1),:]
         anchors_peaks_anno_filt = anchors_peaks_anno_filt.groupby('Interaction').agg(lambda x: ', '.join(filter(None, list(x[x!="REGIONS"].unique().astype(str)))))
         anchors_peaks_anno_filt.to_csv(prefix + '_HOMER_annotated_interactions_with_peak_overlap.txt', index=True, sep='\t' )
 
