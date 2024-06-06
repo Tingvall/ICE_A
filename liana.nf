@@ -388,7 +388,6 @@ process OVERLAP_REGIONS_1 {
 
   output:
   tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
-  tuple val("REGIONS"), file("in_regions.bed") into ch_in_region_bed
 
   script:
   if (params.circos_use_promoters)
@@ -401,16 +400,11 @@ process OVERLAP_REGIONS_1 {
     awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' ${peak_name}_promoters.bed > ${peak_name}_promoters_info.bed
 
     cat ${peak_name}_regions_info.bed ${peak_name}_promoters_info.bed > ${peak_name}_in_regions.bed
-
-    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' promoter_positions.bed > promoter_positions_info.bed
-    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions_info.bed
-    cat promoter_positions_info.bed in_regions_info.bed > in_regions.bed
     """
 
   else
     """
     bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_in_regions.bed
-    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions.bed
     """
 }
 
@@ -425,25 +419,37 @@ process OVERLAP_REGIONS_2 {
 
   input:
   path in_regions from ch_in_regions
+  path promoter_positions from ch_promoter_positions
   val sample from ch_peaks_multi_1.sample.collect().map{ it2 -> it2.join(' ')}
   val peak_beds from ch_peaks_multi_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
 
   output:
   tuple val("ALL"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
+  tuple val("REGIONS"), file("in_regions.bed") into ch_in_region_bed
+
 
   script:
+  if (params.circos_use_promoters)
     """
-    bedtools intersect -a $in_regions -b $peak_beds -C -names $sample > "Peak_overlap_in_regions.bed"
+    cut -f2-4 $promoter_positions > promoter_positions.bed
+    cat $in_regions promoter_positions.bed > in_regions_promoter.bed
+    bedtools intersect -a in_regions_promoter -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
+
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' promoter_positions.bed > promoter_positions_info.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions_info.bed
+    cat promoter_positions_info.bed in_regions_info.bed > in_regions.bed
+    """
+  else
+    """
+    bedtools intersect -a $in_regions -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions.bed
     """
 }
 
 if (params.in_regions != "Not_specified"){
   if (params.mode == "multiple"){
-    //ch_peaks_in_region.concat(ch_in_region_bed).concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
-    ch_peaks_in_region.concat(ch_in_region_bed, ch_all_peaks_in_region).set{ch_for_peaks_for_anno}
-    ch_for_peaks_for_anno.into{ch_peaks_for_anno; ch_test}
-    ch_test.view()
+    ch_peaks_in_region.concat(ch_in_region_bed,ch_all_peaks_in_region).set{ch_peaks_for_anno}
   }
   else{
     ch_peaks_in_region.set{ch_peaks_for_anno}
