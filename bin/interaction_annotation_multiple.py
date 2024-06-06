@@ -47,23 +47,32 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
 
     # Merging anchor points
+
     if (in_regions !="Not_specified"):
         anchor1_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End','Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
         anchor2_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Anchor2_Chr', 'Anchor2_Start', 'Anchor2_End','Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
-        anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
+        anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer')
         anchors_peaks_anno = anchors_peaks_anno.iloc[:,np.r_[4:7,0:4,7:10,14:17,10:14,17:21]]
         anchors_peaks_anno.rename(columns = {'Anchor1_Chr': 'chr1', 'Anchor1_Start': 's1','Anchor1_End': 'e1','Anchor2_Chr': 'chr2', 'Anchor2_Start': 's2','Anchor2_End': 'e2'}, inplace = True)
         anchors_peaks_anno = anchors_peaks_anno.dropna(subset=['chr1', 'chr2'])
         anchors_peaks_anno.index = anchors_peaks_anno["Peak1_ID"].map(str) +'_'+ (anchors_peaks_anno["Peak2_ID"]).map(str)
+        anchors_peaks_anno.index.name = 'Interaction'
+        anchors_peaks_anno= anchors_peaks_anno.reset_index().drop_duplicates().set_index('Interaction')
+
+        anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
+        anchors_peaks_anno['Is_Promoter_1'] = np.where(anchors_peaks_anno['Peak1_score'] ==0, 1, 0)
+        anchors_peaks_anno['Is_Promoter_2'] = np.where(anchors_peaks_anno['Peak2_score'] ==0, 1, 0)
 
     else:
         anchor1_peaks_anno =bed2D_anno.loc[:,['chr1', 's1', 'e1','Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
         anchor2_peaks_anno =bed2D_anno.loc[:,['chr2', 's2', 'e2','Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
-        anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer').drop_duplicates()
+        anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer')
+        anchors_peaks_anno.index.name = 'Interaction'
+        anchors_peaks_anno= anchors_peaks_anno.reset_index().drop_duplicates().set_index('Interaction')
 
-    anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
-    anchors_peaks_anno['Is_Promoter_1'] = np.where(((anchors_peaks_anno['Distance_to_TSS_1'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_1'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] <= (binsize/2+promoter_start))),1,0)
-    anchors_peaks_anno['Is_Promoter_2'] = np.where(((anchors_peaks_anno['Distance_to_TSS_2'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_2'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] <= (binsize/2+promoter_start))),1,0)
+        anchors_peaks_anno.rename(columns = {'TSS_1': 'Is_Promoter_1', 'TSS_2': 'Is_Promoter_2'}, inplace = True)
+        anchors_peaks_anno['Is_Promoter_1'] = np.where(((anchors_peaks_anno['Distance_to_TSS_1'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_1'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_1'] <= (binsize/2+promoter_start))),1,0)
+        anchors_peaks_anno['Is_Promoter_2'] = np.where(((anchors_peaks_anno['Distance_to_TSS_2'] <= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] >= -(binsize/2+promoter_end))) | ((anchors_peaks_anno['Distance_to_TSS_2'] >= 0) & (anchors_peaks_anno['Distance_to_TSS_2'] <= (binsize/2+promoter_start))),1,0)
 
     # Creation and use of function for adding 2 columns for each factor (overlap in anchor 1/2) with 1 if overlap
     def peak_in_anchor_1(row):
@@ -78,6 +87,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
             return ''
 
     factor = pd.unique(anchors_peaks_anno[['Peak1', 'Peak2']].dropna().values.ravel('K'))
+    factor = factor[factor != "ALL"]
 
     for f in factor:
         anchors_peaks_anno[f + '_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)

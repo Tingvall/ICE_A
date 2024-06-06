@@ -614,9 +614,9 @@ else{
     """
 }
 
-
-ch_peak_bed_2.filter{it[0] != "ALL"}.into{ch_peak_bed_filt_1; ch_peak_bed_filt_2; ch_peak_bed_filt_3}
-ch_peak_bed_filt_1.multiMap(criteria).set {ch_t_1}
+ch_peak_bed_2.into{ch_peak_bed_3; ch_peak_bed_2}
+ch_peak_bed_3.set{ch_t_1}
+ch_peak_bed_4.filter{it[0] != "ALL"}.into{ch_peak_bed_filt_2; ch_peak_bed_filt_3}
 ch_peak_bed_filt_2.multiMap(criteria).set {ch_t_2}
 ch_peak_bed_filt_3.multiMap(criteria).set {ch_t_3}
 
