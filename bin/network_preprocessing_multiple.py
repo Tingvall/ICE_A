@@ -65,6 +65,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Distal_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Distal = Factor_Distal_1.append(Factor_Distal_2)
     Factor_Distal['Edge_type'] = 'Factor-Distal'
+    if (in_regions !="Not_specified"):
+        Factor_Distal = Factor_Distal.loc[Factor_Distal['Source'] != "REGIONS",:]
 
     #Factor-Promoter
     if (in_regions !="Not_specified" and circos_use_promoters == "true"):
@@ -77,6 +79,9 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Promoter_2.columns = ['Source', 'Target', 'Edge_score']
     Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
+    if (in_regions !="Not_specified"):
+        Factor_Promoter = Factor_Promoter.loc[Factor_Promoter['Source'] != "REGIONS",:]
+
 
     #Distal-Promoter
     if (in_regions !="Not_specified" and circos_use_promoters == "true"):

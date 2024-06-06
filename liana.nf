@@ -659,8 +659,7 @@ process INTERACTION_PEAK_INTERSECT {
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
-  //path in_regions from ch_in_region_bed
-  tuple val(regions), path(in_regions) from ch_in_region_bed
+  tuple val(reg), path(regions) from ch_in_region_bed
 
 
   output:
@@ -683,8 +682,8 @@ process INTERACTION_PEAK_INTERSECT {
 
   else if (params.mode == 'multiple' && params.in_regions != "Not_specified")
     """
-    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $in_regions > Anchor_1_region_overlap.bed
-    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $in_regions > Anchor_2_region_overlap.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $regions > Anchor_1_region_overlap.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $regions > Anchor_2_region_overlap.bed
 
     awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
     awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
