@@ -440,7 +440,10 @@ process OVERLAP_REGIONS_2 {
 
 if (params.in_regions != "Not_specified"){
   if (params.mode == "multiple"){
-    ch_peaks_in_region.concat(ch_in_region_bed).concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
+    //ch_peaks_in_region.concat(ch_in_region_bed).concat(ch_all_peaks_in_region).set{ch_peaks_for_anno}
+    ch_peaks_in_region.concat(ch_in_region_bed).concat(ch_all_peaks_in_region).set{ch_for_peaks_for_anno}
+    ch_for_peaks_for_anno.into{ch_peaks_for_anno; ch_test}
+    ch_test.view()
   }
   else{
     ch_peaks_in_region.set{ch_peaks_for_anno}
