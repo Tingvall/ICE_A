@@ -87,7 +87,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
             return ''
 
     factor = pd.unique(anchors_peaks_anno[['Peak1', 'Peak2']].dropna().values.ravel('K'))
-    factor = factor[factor != "ALL"]
+    factor = factor[factor != "ALL" and factor != "REGIONS"]
 
     for f in factor:
         anchors_peaks_anno[f + '_1'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_1(row), axis=1)
