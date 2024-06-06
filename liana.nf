@@ -426,7 +426,7 @@ process OVERLAP_REGIONS_2 {
 
   output:
   tuple val("ALL"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
-  tuple val("REGIONS"), file("in_regions.bed") into ch_in_region_bed
+  tuple val("REGIONS"), file("in_regions.bed") into ch_for_in_region_bed
 
 
   script:
@@ -446,6 +446,15 @@ process OVERLAP_REGIONS_2 {
     awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions.bed
     """
 }
+
+if (params.circos_use_promoters){
+  ch_for_in_region_bed.first().set{ch_in_region_bed}
+}
+else{
+  ch_in_regions.set{ch_in_region_bed}
+
+}
+
 
 if (params.in_regions != "Not_specified"){
   if (params.mode == "multiple"){
@@ -650,7 +659,7 @@ process INTERACTION_PEAK_INTERSECT {
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
-  path in_regions from ch_in_regions
+  path in_regions from ch_in_region_bed
 
   output:
   path "Anchor_1_peak_collect.bed" into ch_anchor_1_peak_collect
