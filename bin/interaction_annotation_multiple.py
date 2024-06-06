@@ -49,11 +49,11 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     # Merging anchor points
 
     if (in_regions !="Not_specified"):
-        anchor1_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End','Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
-        anchor2_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Anchor2_Chr', 'Anchor2_Start', 'Anchor2_End','Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
+        anchor1_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1_Chr', 'Peak1_Start', 'Peak1_End','Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
+        anchor2_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2_Chr', 'Peak2_Start', 'Peak2_End','Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
         anchors_peaks_anno = anchor1_peaks_anno.merge(anchor2_peaks_anno, left_index=True, right_index=True,how = 'outer')
         anchors_peaks_anno = anchors_peaks_anno.iloc[:,np.r_[4:7,0:4,7:10,14:17,10:14,17:21]]
-        anchors_peaks_anno.rename(columns = {'Anchor1_Chr': 'chr1', 'Anchor1_Start': 's1','Anchor1_End': 'e1','Anchor2_Chr': 'chr2', 'Anchor2_Start': 's2','Anchor2_End': 'e2'}, inplace = True)
+        anchors_peaks_anno.rename(columns = {'Peak1_Chr': 'chr1', 'Peak1_Start': 's1','Peak1_End': 'e1','Peak2_Chr': 'chr2', 'Peak2_Start': 's2','Peak2_End': 'e2'}, inplace = True)
         anchors_peaks_anno = anchors_peaks_anno.dropna(subset=['chr1', 'chr2'])
         anchors_peaks_anno.index = anchors_peaks_anno["Peak1_ID"].map(str) +'_'+ (anchors_peaks_anno["Peak2_ID"]).map(str)
         anchors_peaks_anno.index.name = 'Interaction'
