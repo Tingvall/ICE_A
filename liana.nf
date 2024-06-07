@@ -736,7 +736,7 @@ process INTERACTION_PEAK_INTERSECT {
     """
     awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
-    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor1_extended.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect.bed
@@ -747,7 +747,7 @@ process INTERACTION_PEAK_INTERSECT {
     """
     awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
-    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor1_extended.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
@@ -758,7 +758,7 @@ process INTERACTION_PEAK_INTERSECT {
     """
     awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
-    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor1_extended.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $regions > Anchor_1_region_overlap.bed
