@@ -97,6 +97,7 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     for f in factor:
         anchors_peaks_anno[f + '_2'] = anchors_peaks_anno.apply (lambda row: peak_in_anchor_2(row), axis=1)
 
+    anchors_peaks_anno=anchors_peaks_anno.sort_values(by=['Interaction_score']).drop_duplicates(subset=['Peak1_ID', 'Peak2_ID','Gene_Name_1', 'Gene_Name_2' ], keep='first').sort_index()
     anchors_peaks_anno.index.name = 'Interaction'
     anchors_peaks_anno_original = anchors_peaks_anno.copy(deep=True)
 
