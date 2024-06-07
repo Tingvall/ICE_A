@@ -44,10 +44,10 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
 
     # Aggregating interaction file to only incude one row per interaction
     if (in_regions !="Not_specified"):
-        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15,16,20:len(anchors_peaks_anno.columns),8,18]]
+        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,7,10:15,16,20:len(anchors_peaks_anno.columns),9,18]]
         interactions_anno.rename(columns = {'Peak1_ID': 'Anchor1', 'Peak2_ID': 'Anchor2'}, inplace = True)
     else:
-        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,6,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
+        interactions_anno = interactions_anno.iloc[:,np.r_[0:5,7,10:15, 16, 20:len(anchors_peaks_anno.columns)]]
         interactions_anno['Anchor1'] = interactions_anno["chr1"].map(str) +':'+ (interactions_anno["s1"].astype(int)-1).map(str) +'-'+ interactions_anno["e1"].astype(int).map(str)
         interactions_anno['Anchor2'] = interactions_anno["chr2"].map(str) +':'+ (interactions_anno["s2"].astype(int)-1).map(str) +'-'+ interactions_anno["e2"].astype(int).map(str)
     interactions_anno = pd.concat([interactions_anno['Anchor1'], interactions_anno.iloc[:,3:6], interactions_anno['Anchor2'],interactions_anno.iloc[:,9:(len(interactions_anno.columns)-2)]], axis=1)
