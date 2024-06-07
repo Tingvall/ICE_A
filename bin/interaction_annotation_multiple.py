@@ -38,16 +38,19 @@ def interaction_annotation_multiple(anchor_1_peak_collect, anchor_2_peak_collect
     anchor2_peak_name = ('Anchor2_Chr', 'Anchor2_Start', 'Anchor2_End', 'Peak2', 'Peak2_Chr', 'Peak2_Start', 'Peak2_End', 'Peak2_ID', 'Peak2_score')
 
     # Load interaction centered peak overlaps 2and annotated 2D-bed
-    anchor1_peaks = pd.read_table(anchor_1_peak_collect, index_col=3,names=anchor1_peak_name).sort_index().drop_duplicates()
-    anchor2_peaks = pd.read_table(anchor_2_peak_collect, index_col=3,names=anchor2_peak_name).sort_index().drop_duplicates()
+    anchor1_peaks = pd.read_table(anchor_1_peak_collect, index_col=3,names=anchor1_peak_name).sort_index()
+    anchor2_peaks = pd.read_table(anchor_2_peak_collect, index_col=3,names=anchor2_peak_name).sort_index()
     bed2D_anno = pd.read_table(bed2D_index_anno, index_col=1).sort_index().iloc[:,1:]
 
     # Create Peak columns (chr:start-end) for anchor 1 & 2
     anchor1_peaks["Peak1_ID"] = anchor1_peaks["Peak1_Chr"].map(str) +':'+ (anchor1_peaks["Peak1_Start"]-1).map(str) +'-'+ anchor1_peaks["Peak1_End"].map(str)
     anchor2_peaks["Peak2_ID"] = anchor2_peaks["Peak2_Chr"].map(str) +':'+ (anchor2_peaks["Peak2_Start"]-1).map(str) +'-'+ anchor2_peaks["Peak2_End"].map(str)
 
-    # Merging anchor points
+    #Remove duplicates
+    anchor1_peaks = anchor1_peaks.reset_index().drop_duplicates().set_index('index')
+    anchor2_peaks = anchor2_peaks.reset_index().drop_duplicates().set_index('index')
 
+    # Merging anchor points
     if (in_regions !="Not_specified"):
         anchor1_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_1', 'Gene_Name_1', 'Distance_to_TSS_1', 'TSS_1']].merge(anchor1_peaks.loc[:,['Peak1_Chr', 'Peak1_Start', 'Peak1_End','Peak1','Peak1_ID', 'Peak1_score']], left_index=True, right_index=True, how = 'left')
         anchor2_peaks_anno =bed2D_anno.loc[:,['Entrez_ID_2', 'Gene_Name_2','Distance_to_TSS_2', "TSS_2"]].merge(anchor2_peaks.loc[:,['Peak2_Chr', 'Peak2_Start', 'Peak2_End','Peak2','Peak2_ID', 'Peak2_score']], left_index=True, right_index=True, how = 'left').merge(bed2D_anno.loc[:,['Interaction_score']], left_index=True, right_index=True, how = 'left')
