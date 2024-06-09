@@ -33,7 +33,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
   upset_promoter = pd.read_table(upset_promoter)
   upset_distal = pd.read_table(upset_distal)
 
-  factor = pd.concat([upset_promoter, upset_distal])['Source'].unique()
+  factor = pd.concat([upset_promoter, upset_distal])['Source'].dropna().unique()
 
   ## Upset PLOTS
   # Promoter all
