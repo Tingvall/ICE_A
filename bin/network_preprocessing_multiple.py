@@ -37,7 +37,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     anchors_peaks_anno = pd.read_table(interactions_annotated_not_aggregated, index_col=0)
     anchors_peaks_anno = anchors_peaks_anno.assign(Peak1_score = pd.to_numeric(anchors_peaks_anno['Peak1_score']))
     anchors_peaks_anno = anchors_peaks_anno.assign(Peak2_score = pd.to_numeric(anchors_peaks_anno['Peak2_score']))
-    anchors_peaks_anno = anchors_peaks_anno.loc[((anchors_peaks_anno['Is_Promoter_1'] == 0) & (anchors_peaks_anno['Peak1_score'] == 1) & (anchors_peaks_anno['Is_Promoter_2'] == 1) & (anchors_peaks_anno['Peak2_score'] == 0)) | ((anchors_peaks_anno['Is_Promoter_1'] == 1) & (anchors_peaks_anno['Peak1_score'] == 0) & (anchors_peaks_anno['Is_Promoter_2'] == 0) & (anchors_peaks_anno['Peak2_score'] == 1)),:]
+    anchors_peaks_anno = anchors_peaks_anno.loc[((anchors_peaks_anno['Is_Promoter_1'] == 0) & (anchors_peaks_anno['Is_Promoter_2'] == 1)) | ((anchors_peaks_anno['Is_Promoter_1'] == 1) & (anchors_peaks_anno['Is_Promoter_2'] == 0)),:]
 
     interactions_anno = pd.read_table(interactions_annotated, index_col=0)
     interactions_anno =  interactions_anno[interactions_anno.index.isin(anchors_peaks_anno.index)]
@@ -74,7 +74,8 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Distal = Factor_Distal_1.append(Factor_Distal_2)
     Factor_Distal['Edge_type'] = 'Factor-Distal'
     if (in_regions !="Not_specified"):
-        Factor_Distal = Factor_Distal.loc[Factor_Distal['Source'] != "REGIONS",:]
+        Factor_Distal.loc[test["Source"] == "REGIONS", "Source"] = ''
+
 
     #Factor-Promoter
     if (in_regions !="Not_specified" and circos_use_promoters == "true"):
@@ -88,8 +89,7 @@ def network_preprocessing_multiple(interactions_annotated, interactions_annotate
     Factor_Promoter = Factor_Promoter_1.append(Factor_Promoter_2)
     Factor_Promoter['Edge_type'] = 'Factor-Promoter'
     if (in_regions !="Not_specified"):
-        Factor_Promoter = Factor_Promoter.loc[Factor_Promoter['Source'] != "REGIONS",:]
-
+        Factor_Promoter.loc[test["Source"] == "REGIONS", "Source"] = ''
 
     #Distal-Promoter
     if (in_regions !="Not_specified" and circos_use_promoters == "true"):

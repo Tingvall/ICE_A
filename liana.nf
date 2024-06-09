@@ -700,8 +700,11 @@ process INTERACTION_PEAK_INTERSECT {
     awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect.bed
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
     """
 
   else if (params.close_peak_type == 'bin' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
@@ -711,8 +714,11 @@ process INTERACTION_PEAK_INTERSECT {
     awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
     """
 
   else if (params.close_peak_type == 'bin' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
@@ -739,8 +745,11 @@ process INTERACTION_PEAK_INTERSECT {
     awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect.bed
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
     """
 
   else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
@@ -750,8 +759,11 @@ process INTERACTION_PEAK_INTERSECT {
     awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
     awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
 
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
-    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
     """
 
   else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
