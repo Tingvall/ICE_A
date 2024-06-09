@@ -86,7 +86,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     upset_distal = upset_distal.groupby(upset_distal.columns[0]).max()
     upset_distal['distal_cat'] = 'Distal'+upset_distal.eq(True).dot('_'+upset_distal.columns)
 
-    circos_f = upset_promoter.merge(upset_distal, left_index=True, right_index=True, how = 'outer')
+    circos_f = upset_promoter.merge(upset_distal, left_index=True, right_index=True, how = 'inner')
     circos_f.loc[circos_f["promoter_cat"] == "Promoter", "promoter_cat"] = 'Promoter_NoBinding'
     circos_f.loc[circos_f["distal_cat"] == "Distal", "distal_cat"] = 'Distal_NoBinding'
     circos_f.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
@@ -106,10 +106,10 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
         upset_distal_g = upset_distal_g.groupby(upset_distal_g.columns[0]).max()
         upset_distal_g['distal_cat'] = 'Distal'+upset_distal_g.eq(True).dot('_'+upset_distal_g.columns)
 
-        circos_g = upset_promoter_g.merge(upset_distal_g, left_index=True, right_index=True, how = 'outer')
-        circos_f.loc[circos_f["promoter_cat"] == "Promoter", "promoter_cat"] = 'Promoter_NoBinding'
-        circos_f.loc[circos_f["distal_cat"] == "Distal", "distal_cat"] = 'Distal_NoBinding'
-        circos_g.fillna(value={'promoter_cat': 'promoter_NoBinding', 'distal_cat': 'distal_NoBinding'}, inplace=True)
+        circos_g = upset_promoter_g.merge(upset_distal_g, left_index=True, right_index=True, how = 'inner')
+        circos_g.loc[circos_g["promoter_cat"] == "Promoter", "promoter_cat"] = 'Promoter_NoBinding'
+        circos_g.loc[circos_g["distal_cat"] == "Distal", "distal_cat"] = 'Distal_NoBinding'
+        circos_g.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
         circos_g.fillna(False,inplace=True)
         circos_g = circos_g[circos_g.index.isin(distal_promoter.index)]
         circos_g = circos_g.groupby(list(circos_g.columns)).size().to_frame('size').reset_index()
