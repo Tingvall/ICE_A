@@ -87,6 +87,8 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     upset_distal['distal_cat'] = 'Distal'+upset_distal.eq(True).dot('_'+upset_distal.columns)
 
     circos_f = upset_promoter.merge(upset_distal, left_index=True, right_index=True, how = 'outer')
+    circos_f.loc[circos_f["promoter_cat"] == "Promoter", "promoter_cat"] = 'Promoter_NoBinding'
+    circos_f.loc[circos_f["distal_cat"] == "Distal", "distal_cat"] = 'Distal_NoBinding'
     circos_f.fillna(value={'promoter_cat': 'Promoter_NoBinding', 'distal_cat': 'Distal_NoBinding'}, inplace=True)
     circos_f.fillna(False,inplace=True)
 
@@ -97,19 +99,21 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     circos_f.to_csv('Circos_peaks_' + prefix + '_interactions.txt', index=False, sep='\t' )
 
     if filter_genes == 'true':
-      upset_promoter_g = upset_promoter_g.iloc[:,np.r_[0,4:len(upset_promoter_g.columns)]]
-      upset_promoter_g = upset_promoter_g.groupby(upset_promoter_g.columns[0]).max()
-      upset_promoter_g['promoter_cat'] = 'Promoter'+upset_promoter_g.eq(True).dot('_'+upset_promoter_g.columns)
-      upset_distal_g = upset_distal_g.iloc[:,np.r_[0,4:len(upset_distal_g.columns)]]
-      upset_distal_g = upset_distal_g.groupby(upset_distal_g.columns[0]).max()
-      upset_distal_g['distal_cat'] = 'Distal'+upset_distal_g.eq(True).dot('_'+upset_distal_g.columns)
+        upset_promoter_g = upset_promoter_g.iloc[:,np.r_[0,4:len(upset_promoter_g.columns)]]
+        upset_promoter_g = upset_promoter_g.groupby(upset_promoter_g.columns[0]).max()
+        upset_promoter_g['promoter_cat'] = 'Promoter'+upset_promoter_g.eq(True).dot('_'+upset_promoter_g.columns)
+        upset_distal_g = upset_distal_g.iloc[:,np.r_[0,4:len(upset_distal_g.columns)]]
+        upset_distal_g = upset_distal_g.groupby(upset_distal_g.columns[0]).max()
+        upset_distal_g['distal_cat'] = 'Distal'+upset_distal_g.eq(True).dot('_'+upset_distal_g.columns)
 
-      circos_g = upset_promoter_g.merge(upset_distal_g, left_index=True, right_index=True, how = 'outer')
-      circos_g.fillna(value={'promoter_cat': 'promoter_NoBinding', 'distal_cat': 'distal_NoBinding'}, inplace=True)
-      circos_g.fillna(False,inplace=True)
-      circos_g = circos_g[circos_g.index.isin(distal_promoter.index)]
-      circos_g = circos_g.groupby(list(circos_g.columns)).size().to_frame('size').reset_index()
-      circos_g.to_csv('Circos_genes_' + prefix + '_interactions.txt', index=False, sep='\t' )
+        circos_g = upset_promoter_g.merge(upset_distal_g, left_index=True, right_index=True, how = 'outer')
+        circos_f.loc[circos_f["promoter_cat"] == "Promoter", "promoter_cat"] = 'Promoter_NoBinding'
+        circos_f.loc[circos_f["distal_cat"] == "Distal", "distal_cat"] = 'Distal_NoBinding'
+        circos_g.fillna(value={'promoter_cat': 'promoter_NoBinding', 'distal_cat': 'distal_NoBinding'}, inplace=True)
+        circos_g.fillna(False,inplace=True)
+        circos_g = circos_g[circos_g.index.isin(distal_promoter.index)]
+        circos_g = circos_g.groupby(list(circos_g.columns)).size().to_frame('size').reset_index()
+        circos_g.to_csv('Circos_genes_' + prefix + '_interactions.txt', index=False, sep='\t' )
 
 # RUN FUNCTION
 upset_plot(upset_promoter=args.UPSET_PROMOTER, upset_distal=args.UPSET_DISTAL, distal_promoter=args.DISTAL_PROMOTER,upset_promoter_g=args.UPSET_PROMOTER_G, upset_distal_g=args.UPSET_DISTAL_G, prefix=args.PREFIX, circos_plot=args.CIRCOS_PLOT, filter_genes=args.FILTER_GENES, complete=args.COMPLETE)
