@@ -40,6 +40,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
   for f in factor:
       upset_promoter[f] = np.where(upset_promoter['Source'] == f, True, False)
   upset_promoter_anchor = upset_promoter.iloc[:,np.r_[2,4:len(upset_promoter.columns)]]
+  upset_promoter_anchor = upset_promoter_anchor.loc[upset_promoter_anchor.iloc[:,1:len(upset_promoter_anchor.columns)].sum(axis=1) != 0,:]
   upset_promoter_anchor = upset_promoter_anchor.groupby(upset_promoter_anchor.columns[0]).max()
   upset_promoter_anchor_group = upset_promoter_anchor.groupby(list(factor)).size().to_frame('size')
   plot(upset_promoter_anchor_group['size'], sort_by="cardinality")
@@ -50,6 +51,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
   for f in factor:
       upset_distal[f] = np.where(upset_distal['Source'] == f, True, False)
   upset_distal_anchor = upset_distal.iloc[:,np.r_[2,4:len(upset_distal.columns)]]
+  upset_distal_anchor = upset_distal_anchor.loc[upset_distal_anchor.iloc[:,1:len(upset_distal_anchor.columns)].sum(axis=1) != 0,:]
   upset_distal_anchor = upset_distal_anchor.groupby(upset_distal_anchor.columns[0]).max()
   upset_distal_anchor_group = upset_distal_anchor.groupby(list(factor)).size().to_frame('size')
   plot(upset_distal_anchor_group['size'], sort_by="cardinality")
@@ -63,6 +65,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     for f in factor:
         upset_promoter_g[f] = np.where(upset_promoter_g['Source'] == f, True, False)
     upset_promoter_g_anchor = upset_promoter_g.iloc[:,np.r_[2,4:len(upset_promoter_g.columns)]]
+    upset_promoter_g_anchor = upset_promoter_g_anchor.loc[upset_promoter_g_anchor.iloc[:,1:len(upset_promoter_g_anchor.columns)].sum(axis=1) != 0,:]
     upset_promoter_g_anchor = upset_promoter_g_anchor.groupby(upset_promoter_g_anchor.columns[0]).max()
     upset_promoter_g_anchor_group = upset_promoter_g_anchor.groupby(list(factor)).size().to_frame('size')
     plot(upset_promoter_g_anchor_group['size'], sort_by="cardinality")
@@ -72,6 +75,7 @@ def upset_plot(upset_promoter, upset_distal, distal_promoter, upset_promoter_g, 
     for f in factor:
         upset_distal_g[f] = np.where(upset_distal_g['Source'] == f, True, False)
     upset_distal_g_anchor = upset_distal_g.iloc[:,np.r_[2,4:len(upset_distal_g.columns)]]
+    upset_distal_g_anchor = upset_distal_g_anchor.loc[upset_distal_g_anchor.iloc[:,1:len(upset_distal_g_anchor.columns)].sum(axis=1) != 0,:]
     upset_distal_g_anchor = upset_distal_g_anchor.groupby(upset_distal_g_anchor.columns[0]).max()
     upset_distal_g_anchor_group = upset_distal_g_anchor.groupby(list(factor)).size().to_frame('size')
     plot(upset_distal_g_anchor_group['size'], sort_by="cardinality")
