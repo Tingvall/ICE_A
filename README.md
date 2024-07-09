@@ -1,4 +1,4 @@
-# ICE_A: Interaction based Cis-regulatory Element Annotator
+# ICE-A: Interaction based Cis-regulatory Element Annotator
 **A nextflow-based pipeline to facilitate the use of chromatin interaction for peak annotation**
 
 ## Introduction
