@@ -1,4 +1,4 @@
-name: liana_env
+name: ICE_A_env
 
 channels:
   - conda-forge
