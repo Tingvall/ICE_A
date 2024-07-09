@@ -6,7 +6,7 @@ More and more evidence points towards the importance of chromatin interactions i
 
 ICE_A (Long-range chromatin Interactions for ANnotation of peAks) is a nextflow based pipeline that perform peak annotation by combining conventional proximity-based and interaction based annotation. This allows it to improve the accuracy of annotation for distal peaks while still allowing for peaks located promoter regions to be annotated to the corresponding gene. The principal idea for ICE_A, is to perform peak-centered annotation, however there are cases where the presence of a transcription factor occupancy or histone modification at the interaction anchor points are of interest. For this ICE_A provides the option to perform interaction-centers annotation. ICE_A can be run in 3 different modes, all which is provided with the option to visualize the peak annotations in an interactive network format using Cytoscape.
 
-![ICE_A](ICE_A_figure.png)
+![ICE_A](ICE_A.png)
 
 ### Annotation modes
 To facilitate annotation of different types of input data, the pipeline can be run in three different modes: basic, multiple and differential:
