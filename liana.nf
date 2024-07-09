@@ -77,22 +77,38 @@ else{
   ch_bed2D = Channel.empty()
 }
 
+
 if (params.peaks)     { ch_peaks = Channel.fromPath(params.peaks, checkIfExists: true) } else { exit 1, 'Peaks not specified' }
-    ch_peaks
-        .splitCsv(header:true, sep:'\t')
-        .map { row -> [ row.sample, [ file(row.path) ] ] }
-        .set { ch_peaks_split}
+      ch_peaks
+          .splitCsv(header:true, sep:'\t')
+          .map { row -> [ row.sample,  file(row.path)  ] }
+          .set{ch_peaks}
+
+          if (params.in_regions == "Not_specified"){
+            ch_peaks.into{ ch_peaks_for_anno; ch_peaks_split_1; ch_peaks_split_2;ch_peaks_split_3}
+          }
+          else{
+            ch_peaks.into{ ch_peaks_split_1; ch_peaks_split_2;ch_peaks_split_3}
+          }
+
+def criteria = multiMapCriteria {
+                     sample: it[0]
+                     peaks_beds: it[1]
+                   }
+
+ch_peaks_split_2.multiMap(criteria).set{ch_peaks_multi_1}
+ch_peaks_split_3.multiMap(criteria).set{ch_peaks_multi_2}
+ch_peaks_multi_2.set{ch_for_in_regions}
+
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
 
 if (params.tss != 'default') {
-  if (params.tss)     { ch_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
-    ch_tss.into {ch_tss_1; ch_tss_2}
+  if (params.tss)     { ch_for_tss = Channel.fromPath(params.tss, checkIfExists: true) } else { exit 1, 'Custom tss not found' }
+    ch_for_tss.first().set{ch_tss}
 }
 else {
-  ch_tss_1 = file(params.tss)
-  ch_tss_2 = file(params.tss)
-
+  ch_tss = file(params.tss)
 }
 
 if (params.network_mode == 'genes') {
@@ -100,6 +116,14 @@ if (params.network_mode == 'genes') {
 }
 else {
   ch_genes = file(params.genes)
+}
+
+if (params.in_regions == 'Not_specified' | params.in_regions == 'consensus') {
+  ch_in_regions = file(params.in_regions)
+}
+else {
+  if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
+    ch_for_regions.first().set{ch_in_regions}
 }
 
 
@@ -204,7 +228,6 @@ println ("""
         """)
 }
 
-
 /*
  * 1. 2D-BED SPLIT: SPLIT 2D-BED FILE INTO 2 BED FILES FOR ANNOTATION
  */
@@ -253,33 +276,42 @@ process ANNOTATE_INTERACTION {
     path anchor1 from ch_anchor1
     path anchor2 from ch_anchor2
     val genome from Channel.value(params.genome)
-    path tss from ch_tss_1
-
+    val env from Channel.value(params.env)
+    path tss from ch_tss
+    val promoter_start from Channel.value(params.promoter_start)
+    val promoter_end from Channel.value(params.promoter_end)
 
     output:
     path "${anchor1.baseName}_anno.txt" into ch_anchor1_anno       // Annotated anchor bed files
     path "${anchor2.baseName}_anno.txt" into ch_anchor2_anno
+    path "promoter_positions.txt" into ch_for_promoter_positions
 
     script:
     if (params.tss == 'default')
     """
     annotatePeaks.pl $anchor1 $genome > ${anchor1.baseName}_anno.txt
     annotatePeaks.pl $anchor2 $genome > ${anchor2.baseName}_anno.txt
+    cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss homer_promoter_positions.txt
+    awk -v FS='\t' -v OFS='\t' '{if (\$5==1) {print \$1,\$2,\$3+2000-$promoter_start,\$4-2000+$promoter_end,\$5} if (\$5==0) {print \$1,\$2,\$3+2000-$promoter_end,\$4-2000+$promoter_start,\$5}}' homer_promoter_positions.txt > for_promoter_positions.txt
+    awk '\$3<0 {\$3=0} 1' OFS='\t' for_promoter_positions.txt > promoter_positions.txt
     """
 
     else
     """
     awk -v FS='\t' -v OFS='\t' '{print \$2,"custom","exon",\$3,\$4,".",\$5,".","transcript_id ""\\x22"\$1"\\x22"}' $tss > tss.gtf
 
-    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}__anno_noIDs.txt
-    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor1.baseName}__anno_noIDs.txt > ${anchor1.baseName}__anno_na_not_removed.txt
-    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor1.baseName}__anno_na_not_removed.txt > ${anchor1.baseName}_anno.txt
+    annotatePeaks.pl $anchor1 $genome -gtf tss.gtf > ${anchor1.baseName}_anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor1.baseName}_anno_noIDs.txt > ${anchor1.baseName}_anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor1.baseName}_anno_na_not_removed.txt > ${anchor1.baseName}_anno.txt
 
-    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}__anno_noIDs.txt
-    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor2.baseName}__anno_noIDs.txt > ${anchor2.baseName}__anno_na_not_removed.txt
-    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor2.baseName}__anno_na_not_removed.txt > ${anchor2.baseName}_anno.txt
+    annotatePeaks.pl $anchor2 $genome -gtf tss.gtf > ${anchor2.baseName}_anno_noIDs.txt
+    awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${anchor2.baseName}_anno_noIDs.txt > ${anchor2.baseName}_anno_na_not_removed.txt
+    awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${anchor2.baseName}_anno_na_not_removed.txt > ${anchor2.baseName}_anno.txt
+
+    cp $tss promoter_positions.txt
     """
 }
+ch_for_promoter_positions.first().set{ch_promoter_positions}
 
 /*
  * 3. MERGE ANNOTATED ANCHOR REGIONS
@@ -307,30 +339,151 @@ process JOIN_ANNOTATED_INTERACTIONS {
     """
 }
 
+
 if (params.skip_anno) {
   if (params.bed2D_anno)     { ch_bed2D_anno = Channel.fromPath(params.bed2D_anno, checkIfExists: true) } else { exit 1, 'Annotated 2D-bed file not found' }
 }
 
-  /*
-   * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
-   */
-  process ANNOTATE_PEAKS {
-      publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
+/*
+ * 3.5.0
+ */
+process OVERLAP_REGIONS_0 {
+  publishDir "${params.outdir}/tmp/process3.5.0", mode: 'copy', enabled: params.save_tmp
 
-      input:
-      tuple val(peak_name), path(peak_file) from ch_peaks_split
-      val genome from Channel.value(params.genome)
-      val env from Channel.value(params.env)
-      path tss from ch_tss_2
+  when:
+  params.mode =="multiple" && params.in_regions == "consensus"
+
+  input:
+  val sample from ch_for_in_regions.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_for_in_regions.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+
+  output:
+  path "consensus_in_regions.bed" into ch_for_in_regions_2
+
+  script:
+    """
+    cat $peak_beds > peaks_all.beds
+    cut -f1-3 peaks_all.bed | sort -k1,1 -k2,2n > peaks_all_sort.bed
+    bedtools merge -i peaks_all_sort.bed > consensus_in_regions.bed
+    """
+
+}
+if (params.mode =="multiple" && params.in_regions == "consensus") {
+  ch_for_in_regions_2.first().set{ch_in_regions}
+}
+
+/*
+ * 3.5.1
+ */
+process OVERLAP_REGIONS_1 {
+  publishDir "${params.outdir}/tmp/process3.5.1", mode: 'copy', enabled: params.save_tmp
+
+  when:
+  params.mode =="multiple" && params.in_regions != "Not_specified"
+
+  input:
+  tuple val(peak_name), path(peak_file) from ch_peaks_split_1
+  path in_regions from ch_in_regions
+  path promoter_positions from ch_promoter_positions
+
+  output:
+  tuple val(peak_name), file("${peak_name}_in_regions.bed") into ch_peaks_in_region
+
+  script:
+  if (params.circos_use_promoters)
+    """
+    bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' ${peak_name}_regions.bed > ${peak_name}_regions_info.bed
+
+    cut -f2-4 $promoter_positions > promoter_positions.bed
+    bedtools intersect -wa -a promoter_positions.bed -b $peak_file > ${peak_name}_promoters.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' ${peak_name}_promoters.bed > ${peak_name}_promoters_info.bed
+
+    cat ${peak_name}_regions_info.bed ${peak_name}_promoters_info.bed > ${peak_name}_in_regions.bed
+    """
+
+  else
+    """
+    bedtools intersect -wa -a $in_regions -b $peak_file > ${peak_name}_in_regions.bed
+    """
+}
+
+/*
+ * 3.5.2
+ */
+process OVERLAP_REGIONS_2 {
+  publishDir "${params.outdir}/tmp/process3.5.2", mode: 'copy', enabled: params.save_tmp
+
+  when:
+  params.in_regions != "Not_specified" && params.mode == "multiple"
+
+  input:
+  path in_regions from ch_in_regions
+  path promoter_positions from ch_promoter_positions
+  val sample from ch_peaks_multi_1.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_peaks_multi_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
 
-      output:
-      tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
-      tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2,ch_peak_bed_3,ch_peak_bed_4
-      path "promoter_positions.txt" into ch_promoter_positions
+  output:
+  tuple val("ALL"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
+  tuple val("REGIONS"), file("in_regions.bed") into ch_for_in_region_bed
 
-      script:
-      if (params.tss == 'default')
+
+  script:
+  if (params.circos_use_promoters)
+    """
+    cut -f2-4 $promoter_positions > promoter_positions.bed
+    cat $in_regions promoter_positions.bed > in_regions_promoter.bed
+    bedtools intersect -a in_regions_promoter.bed -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
+
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,0}' promoter_positions.bed > promoter_positions_info.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions_info.bed
+    cat promoter_positions_info.bed in_regions_info.bed > in_regions.bed
+    """
+  else
+    """
+    bedtools intersect -a $in_regions -b $peak_beds -C -names $sample > Peak_overlap_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$1,\$2,\$3,\$1":"\$2"-"\$3,1}' $in_regions > in_regions.bed
+    """
+}
+
+if (params.circos_use_promoters){
+  ch_for_in_region_bed.first().set{ch_in_region_bed}
+}
+else{
+  ch_in_regions.set{ch_in_region_bed}
+
+}
+
+
+if (params.in_regions != "Not_specified"){
+  if (params.mode == "multiple"){
+    ch_peaks_in_region.concat(ch_in_region_bed,ch_all_peaks_in_region).set{ch_peaks_for_anno}
+  }
+  else{
+    ch_peaks_in_region.set{ch_peaks_for_anno}
+  }
+}
+
+/*
+ * 4. HOMER ANNOTATION PEAKS: ANNOTATION OF PEAK files USING HOMER
+ */
+process ANNOTATE_PEAKS {
+    publishDir "${params.outdir}/tmp/process4", mode: 'copy', enabled: params.save_tmp
+
+    input:
+    tuple val(peak_name), path(peak_file) from ch_peaks_for_anno
+    val genome from Channel.value(params.genome)
+    val env from Channel.value(params.env)
+    path tss from ch_tss
+
+
+    output:
+    tuple val(peak_name), file("${peak_name}_anno.txt") into ch_peak_anno
+    tuple val(peak_name), file("${peak_name}_organized.bed") into ch_peak_bed_1, ch_peak_bed_2
+
+    script:
+    if (params.tss == 'default')
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -340,10 +493,9 @@ if (params.skip_anno) {
       fi
       annotatePeaks.pl ${peak_name}_for_anno.bed $genome > ${peak_name}_anno.txt
       awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno.txt >  ${peak_name}_organized.bed
-      cp \$(echo \$(which conda) | rev | cut -d'/' -f3- | rev)/envs/${env}/share/homer*/data/genomes/${params.genome}/${params.genome}.tss promoter_positions.txt
       """
 
-      else
+    else
       """
       if [ \$(head -n 1 $peak_file | awk '{print NF}') -ge 4 ]
       then
@@ -356,9 +508,9 @@ if (params.skip_anno) {
       awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$2,\$3,\$4,\$1,\$6 }}' ${peak_name}_anno_noIDs.txt >  ${peak_name}_organized.bed
       awk -v FS='\t' -v OFS='\t' '{if (NR==1) {print \$0} if (NR!=1) {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$11,\$11,\$11,\$11,\$11,\$17,\$18,\$19 }}' ${peak_name}_anno_noIDs.txt > ${peak_name}_anno_na_not_removed.txt
       awk -v FS='\t' -v OFS="\t" '\$10!="NA"' ${peak_name}_anno_na_not_removed.txt > ${peak_name}_anno.txt
-      cp $tss promoter_positions.txt
       """
-  }
+ }
+
 
   /*
    * 5. SPLIT ANNOTATED 2D-BED: ANNOTATED 2D-BED SPLIT FOR PEAK OVERLAP
@@ -382,6 +534,8 @@ if (params.skip_anno) {
     awk -v FS='\t' -v OFS='\t' '{if (NR!=1) {print \$6,\$7,\$8,\$2}}' ${prefix}_index_anno.bed >  ${prefix}_anchor2_anno.bed
     """
   }
+
+
 
   /*
    * 6. BEDTOOLS INTERSECT PEAK CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
@@ -422,6 +576,7 @@ if (params.skip_anno) {
       """
   }
 
+
 if (!params.interaction_threshold){
   ch_interaction_threshold = Channel.value(2*params.binsize)
 }
@@ -455,6 +610,9 @@ else{
     val close_promoter_bin from Channel.value(params.close_promoter_bin)
     val filter_close from Channel.value(params.filter_close)
 
+    //Multiple mode specific
+    val circos_use_promoters from Channel.value(params.circos_use_promoters)
+
     //Differntial mode specific
     path peak_differential from ch_peak_differential_1
     val log2FC_column from Channel.value(params.log2FC_column)
@@ -467,7 +625,7 @@ else{
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated.txt") into ch_peak_PLACseq_annotated
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_up.txt") optional true into ch_peak_PLACseq_annotated_up
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_down.txt") optional true into ch_peak_PLACseq_annotated_down
-    tuple val(peak_name), path( "${peak_name}_${prefix}_annotated_for_differential_expression.txt") optional true into ch_peak_PLACseq_annotated_for_differntial_expression
+    tuple val(peak_name), path("${peak_name}_${prefix}_annotated_for_differential_expression.txt") optional true into ch_peak_PLACseq_annotated_for_differntial_expression
 
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist.txt") into ch_peak_PLACseq_annotated_genelist
     tuple val(peak_name), path("${peak_name}_${prefix}_annotated_genelist_up.txt") optional true into ch_peak_PLACseq_annotated_genelist_up
@@ -476,19 +634,16 @@ else{
 
     script:
     """
-    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance_start ${close_promoter_distance_start} --close_promoter_distance_end ${close_promoter_distance_end} --close_promoter_bin ${close_promoter_bin} --filter_close ${filter_close} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
+    peak_annotation.py ${peak_anno_anchor1} ${peak_anno_anchor2} ${peak_anno} ${bed2D_index_anno} --promoter_pos ${promoter_positions} --peak_name ${peak_name} --prefix ${prefix} --proximity_unannotated ${proximity_unannotated} --mode ${mode} --multiple_anno ${multiple_anno} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --binsize ${binsize} --skip_promoter_promoter ${skip_promoter_promoter} --interaction_threshold ${interaction_threshold} --close_promoter_type ${close_promoter_type} --close_promoter_distance_start ${close_promoter_distance_start} --close_promoter_distance_end ${close_promoter_distance_end} --close_promoter_bin ${close_promoter_bin} --filter_close ${filter_close} --circos_use_promoters ${circos_use_promoters} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --close_peak_type ${close_peak_type} --close_peak_distance ${close_peak_distance}
     """
 }
 
-def criteria = multiMapCriteria {
-                     sample: it[0]
-                     peaks_beds: it[1]
-                   }
+ch_peak_bed_2.filter{it[0] != "ALL"}.into{ch_peak_bed_3; ch_peak_bed_4}
+ch_peak_bed_3.multiMap(criteria).set{ch_t_1}
 
-ch_peak_bed_2.multiMap(criteria).set {ch_t_1}
-ch_peak_bed_3.multiMap(criteria).set {ch_t_2}
-ch_peak_bed_4.multiMap(criteria).set {ch_t_3}
-
+ch_peak_bed_4.filter{it[0] != "REGIONS"}.into{ch_peak_bed_filt_2; ch_peak_bed_filt_3}
+ch_peak_bed_filt_2.multiMap(criteria).set {ch_t_2}
+ch_peak_bed_filt_3.multiMap(criteria).set {ch_t_3}
 
 /*
  * 8. BEDTOOLS INTERSECT INTERACTION CENTERED: OVERLAPPING PEAKS WITH 2D-BED ANCHOR POINTS
@@ -504,7 +659,9 @@ process INTERACTION_PEAK_INTERSECT {
   val peak_beds from ch_t_1.peaks_beds.collect().map{ it2 -> it2.join(' ')}
   path bed2D_anno_split_anchor1 from ch_bed2D_anno_split_anchor1_2
   path bed2D_anno_split_anchor2 from ch_bed2D_anno_split_anchor2_2
-
+  tuple val(reg), path(regions) from ch_in_region_bed
+  val close_peak_distance from Channel.value(params.close_peak_distance)
+  val binsize from Channel.value(params.binsize)
 
   output:
   path "Anchor_1_peak_collect.bed" into ch_anchor_1_peak_collect
@@ -512,16 +669,118 @@ process INTERACTION_PEAK_INTERSECT {
 
 
   script:
-  if (params.mode == 'basic' | params.mode == 'differential')
+  if (params.close_peak_type == 'overlap' && (params.mode == 'basic' | params.mode == 'differential'))
     """
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds > Anchor_1_peak_collect.bed
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds > Anchor_2_peak_collect.bed
     """
 
-  else if (params.mode == 'multiple')
+  else if (params.close_peak_type == 'overlap' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
     """
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
     bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.close_peak_type == 'overlap' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
+    """
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor1 -b $regions > Anchor_1_region_overlap.bed
+    bedtools intersect -wa -wb -a $bed2D_anno_split_anchor2 -b $regions > Anchor_2_region_overlap.bed
+
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
+
+    bedtools intersect -wa -wb -a Anchor_1_in_regions.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
+    bedtools intersect -wa -wb -a Anchor_2_in_regions.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.close_peak_type == 'bin' && (params.mode == 'basic' | params.mode == 'differential'))
+    """
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.close_peak_type == 'bin' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
+    """
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance}*${binsize}-1;\$3-=${close_peak_distance}*${binsize}-1}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.close_peak_type == 'bin' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
+    """
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance}*${binsize}-1;\$3+=${close_peak_distance}*${binsize}-1}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $regions > Anchor_1_region_overlap.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $regions > Anchor_2_region_overlap.bed
+
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
+
+    bedtools intersect -wa -wb -a Anchor_1_in_regions.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
+    bedtools intersect -wa -wb -a Anchor_2_in_regions.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
+    """
+
+  else if (params.close_peak_type == 'distance' && (params.mode == 'basic' | params.mode == 'differential'))
+    """
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
+    """
+
+  else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
+    """
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect_extended.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect_extended.bed
+
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
+    """
+
+  else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
+    """
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor1 > bed2D_anno_split_anchor1_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor1_extended.bed > bed2D_anno_split_anchor1_extended_nonneg.bed
+    awk '{\$2-=${close_peak_distance};\$3+=${close_peak_distance}}1' OFS='\t' $bed2D_anno_split_anchor2 > bed2D_anno_split_anchor2_extended.bed
+    awk '\$2<0 {\$2=0} 1' OFS='\t' bed2D_anno_split_anchor2_extended.bed > bed2D_anno_split_anchor2_extended_nonneg.bed
+
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $regions > Anchor_1_region_overlap.bed
+    bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $regions > Anchor_2_region_overlap.bed
+
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_1_region_overlap.bed > Anchor_1_in_regions.bed
+    awk -v FS='\t' -v OFS='\t' '{print \$5,\$6,\$7, \$4}' Anchor_2_region_overlap.bed > Anchor_2_in_regions.bed
+
+    bedtools intersect -wa -wb -a Anchor_1_in_regions.bed -b $peak_beds -names $sample > Anchor_1_peak_collect.bed
+    bedtools intersect -wa -wb -a Anchor_2_in_regions.bed -b $peak_beds -names $sample > Anchor_2_peak_collect.bed
     """
 }
 
@@ -548,10 +807,12 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   val binsize from Channel.value(params.binsize)
   val promoter_start from Channel.value(params.promoter_start)
   val promoter_end from Channel.value(params.promoter_end)
+  val in_regions from Channel.value(params.in_regions)
 
   //Multiple mode specific
   val upset_plot from Channel.value(params.upset_plot)
   val circos_plot from Channel.value(params.circos_plot)
+  val circos_use_promoters from Channel.value(params.circos_use_promoters)
 
   //Differntial mode specific
   path peak_differential from ch_peak_differential_2
@@ -562,7 +823,8 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
 
   output:
   path "*_${prefix}_interactions.txt" into ch_interactions_by_factor
-  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all
+  path "${prefix}_HOMER_annotated_interactions_with_peak_overlap.txt" into ch_interactions_all_not_promoters
+  path "${prefix}_HOMER_annotated_interactions_with_peak_and_promoter.txt" optional true into ch_interactions_all_promoters
   path "${prefix}_HOMER_annotated_interactions_with_peak_overlap_not_aggregated.txt"  optional true into ch_interactions_all_not_aggregated
   path "*_${prefix}_interactions_up.txt" optional true into ch_interactions_up
   path "*_${prefix}_interactions_down.txt" optional true into ch_interactions_down
@@ -571,18 +833,25 @@ process ANNOTATE_INTERACTION_WITH_PEAKS {
   script:
   if (params.mode == 'basic')
     """
-    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end}
+    interaction_annotation_basic.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --in_regions $in_regions
     """
 
   else if (params.mode == 'multiple')
     """
-    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot}
+    interaction_annotation_multiple.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --circos_use_promoters $circos_use_promoters --in_regions $in_regions
     """
 
   else if (params.mode == 'differential')
     """
-    interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj}
+    interaction_annotation_differential.py ${anchor_1_peak_collect} ${anchor_2_peak_collect} ${bed2D_index_anno} --prefix ${prefix} --sample ${sample} --network ${network} --complete ${complete} --binsize ${binsize} --promoter_start ${promoter_start} --promoter_end ${promoter_end} --peak_differential ${peak_differential} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --in_regions $in_regions
     """
+}
+
+if (params.mode == "multiple" && params.circos_use_promoters){
+  ch_interactions_all_promoters.set{ch_interactions_all}
+}
+else{
+  ch_interactions_all_not_promoters.set{ch_interactions_all}
 }
 
 /*
@@ -605,11 +874,13 @@ val network_mode from Channel.value(params.network_mode)
 val complete from Channel.value(params.complete)
 val promoter_promoter from Channel.value(params.promoter_promoter)
 val network_distal_only from Channel.value(params.network_distal_only)
+val in_regions from Channel.value(params.in_regions)
 
 //Multiple mode specific
 val upset_plot from Channel.value(params.upset_plot)
 val circos_plot from Channel.value(params.circos_plot)
 val filter_genes from Channel.value(params.filter_genes)
+val circos_use_promoters from Channel.value(params.circos_use_promoters)
 
 //Differntial mode specific
 path peak_differential from ch_peak_differential_3
@@ -644,17 +915,17 @@ path "Distal_promoter_for_circos.txt" optional true into ch_distal_promoter
 script:
 if (params.mode == 'basic')
   """
-  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_basic.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --complete ${complete} --network_distal_only ${network_distal_only} --in_regions $in_regions
   """
 
 else if (params.mode == 'multiple')
   """
-  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_multiple.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --upset_plot ${upset_plot} --circos_plot ${circos_plot} --filter_genes ${filter_genes} --complete ${complete} --network_distal_only ${network_distal_only} --circos_use_promoters $circos_use_promoters --in_regions $in_regions
   """
 
 else if (params.mode == 'differential')
   """
-  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete} --network_distal_only ${network_distal_only}
+  network_preprocessing_differential.py ${interactions_annotated} ${interactions_annotated_not_aggregated} --genes ${genes} --prefix ${prefix} --sample ${sample} --network_mode ${network_mode} --promoter_promoter ${promoter_promoter} --peak_differential ${peak_differential} --expression ${expression} --log2FC_column ${log2FC_column} --padj_column ${padj_column} --log2FC ${log2FC} --padj ${padj} --skip_expression ${skip_expression} --expression_log2FC_column ${expression_log2FC_column} --expression_padj_column ${expression_padj_column} --complete ${complete} --network_distal_only ${network_distal_only} --in_regions $in_regions
   """
 }
 
