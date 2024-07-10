@@ -460,7 +460,7 @@ else{
   else{
     ch_for_in_region_bed.set{ch_in_region_bed}
   }
-  ch_in_region_bed.map { tuple ('REGIONS', it) }.view
+  ch_for_in_region_bed.map { tuple ('REGIONS', it) }.set{ch_in_region_bed}.view()
 }
 
 
