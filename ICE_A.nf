@@ -373,7 +373,8 @@ process OVERLAP_REGIONS_0 {
 if (params.mode =="multiple" && params.in_regions == "consensus") {
   ch_peaks_multi_for_regions_2.first().set{ch_in_regions}
 }
-else if (params.in_regions != "Not_specified"){
+else
+//else if (params.in_regions != "Not_specified"){
   ch_for_in_regions.set{ch_in_regions}
 }
 
