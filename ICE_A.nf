@@ -119,7 +119,7 @@ else {
 }
 
 if (params.in_regions == 'Not_specified' | params.in_regions == 'consensus') {
-  ch_for_regions = fromPath(params.in_regions)
+  ch_for_regions = Channel.fromPath(params.in_regions)
   ch_for_regions.first().set{ch_for_in_regions}
 
 }
