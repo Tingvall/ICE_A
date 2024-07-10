@@ -460,8 +460,7 @@ else{
   else{
     ch_for_in_region_bed.set{ch_in_region_bed}
   }
-  name = Channel.of("REGIONS")
-  name.combine(ch_for_in_region_bed).set{ch_in_region_bed}
+  ch_in_region_bed.map { tuple ('REGIONS', it) }.view
 }
 
 
