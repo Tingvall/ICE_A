@@ -98,7 +98,7 @@ def criteria = multiMapCriteria {
 
 ch_peaks_split_2.multiMap(criteria).set{ch_peaks_multi_1}
 ch_peaks_split_3.multiMap(criteria).set{ch_peaks_multi_2}
-ch_peaks_multi_2.set{ch_for_in_regions}
+ch_peaks_multi_2.set{ch_peaks_multi_for_regions}
 
 
 if (!params.genome)      { exit 1, 'Refence genome not specified' }
@@ -354,11 +354,11 @@ process OVERLAP_REGIONS_0 {
   params.mode =="multiple" && params.in_regions == "consensus"
 
   input:
-  val sample from ch_for_in_regions.sample.collect().map{ it2 -> it2.join(' ')}
-  val peak_beds from ch_for_in_regions.peaks_beds.collect().map{ it2 -> it2.join(' ')}
+  val sample from ch_peaks_multi_for_regions.sample.collect().map{ it2 -> it2.join(' ')}
+  val peak_beds from ch_peaks_multi_for_regions.peaks_beds.collect().map{ it2 -> it2.join(' ')}
 
   output:
-  path "consensus_in_regions.bed" into ch_for_in_regions_2
+  path "consensus_in_regions.bed" into ch_peaks_multi_for_regions_2
 
   script:
     """
@@ -369,7 +369,7 @@ process OVERLAP_REGIONS_0 {
 
 }
 if (params.mode =="multiple" && params.in_regions == "consensus") {
-  ch_for_in_regions_2.first().set{ch_in_regions}
+  ch_peaks_multi_for_regions_2.first().set{ch_in_regions}
 }
 else{
   ch_for_in_regions.set{ch_in_regions}
