@@ -119,7 +119,9 @@ else {
 }
 
 if (params.in_regions == 'Not_specified' | params.in_regions == 'consensus') {
-  ch_for_in_regions = file(params.in_regions)
+  ch_for_regions = fromPath(params.in_regions)
+  ch_for_regions.first().set{ch_for_in_regions}
+
 }
 else {
   if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
@@ -374,9 +376,7 @@ if (params.mode =="multiple" && params.in_regions == "consensus") {
 else if (params.in_regions != "Not_specified"){
   ch_for_in_regions.set{ch_in_regions}
 }
-else{
-  ch_in_regions=Channel.value('No_file')
-}
+
 
 /*
  * 3.5.1
