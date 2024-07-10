@@ -465,7 +465,7 @@ else{
   }
   //ch_in_region_bed_only.map { tuple ('REGIONS', it) }.set{ch_in_region_bed}.view()
   ch_in_region_bed_only.map { tuple ('REGIONS', it) }.set{ch_in_region_bed_1}
-  ch_in_region_bed_1.into{ch_in_region_bed,; ch_in_region_bed_2}
+  ch_in_region_bed_1.into{ch_in_region_bed; ch_in_region_bed_2}
   ch_in_region_bed_2.view()
 }
 
