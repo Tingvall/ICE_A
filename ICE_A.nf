@@ -455,11 +455,13 @@ if (params.circos_use_promoters){
 }
 else{
   if (params.in_regions == 'Not_specified'){
-    ch_in_region_bed=file(params.in_regions)
+    ch_for_in_region_bed=file(params.in_regions)
   }
   else{
-    ch_in_regions.set{ch_in_region_bed}
+    ch_for_in_region_bed.set{ch_in_region_bed}
   }
+  name = Channel.of("REGIONS")
+  name.combine(ch_for_in_region_bed).set{ch_in_region_bed}
 }
 
 
