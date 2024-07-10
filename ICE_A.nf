@@ -119,7 +119,7 @@ else {
 }
 
 if (params.in_regions == 'Not_specified' | params.in_regions == 'consensus') {
-  ch_in_regions = file(params.in_regions)
+  ch_for_in_regions = file(params.in_regions)
 }
 else {
   if (params.in_regions)     { ch_for_regions = Channel.fromPath(params.in_regions, checkIfExists: true) } else { exit 1, 'Regions for overlap not specified' }
@@ -371,7 +371,7 @@ process OVERLAP_REGIONS_0 {
 if (params.mode =="multiple" && params.in_regions == "consensus") {
   ch_for_in_regions_2.first().set{ch_in_regions}
 }
-else if (params.in_regions != "Not_specified"){
+else{
   ch_for_in_regions.set{ch_in_regions}
 }
 
@@ -429,7 +429,7 @@ process OVERLAP_REGIONS_2 {
 
   output:
   tuple val("ALL"), file("Peak_overlap_in_regions.bed") into ch_all_peaks_in_region
-  tuple val("REGIONS"), file("in_regions.bed") into ch_for_in_region_bed
+  tuple val("REGIONS"), file("in_regions.bed") into ch_for_in_region_bed_prom
 
 
   script:
@@ -451,16 +451,16 @@ process OVERLAP_REGIONS_2 {
 }
 
 if (params.circos_use_promoters){
-  ch_for_in_region_bed.first().set{ch_in_region_bed}
+  ch_for_in_region_bed_prom.first().set{ch_in_region_bed}
 }
 else{
   if (params.in_regions == 'Not_specified'){
-    ch_for_in_region_bed=file(params.in_regions)
+    ch_in_region_bed_only=channel.of('No_file')
   }
   else{
-    ch_for_in_region_bed.set{ch_in_region_bed}
+    ch_in_region.set{ch_in_region_bed_only}
   }
-  ch_for_in_region_bed.map { tuple ('REGIONS', it) }.set{ch_in_region_bed}.view()
+  ch_in_region_bed_only.map { tuple ('REGIONS', it) }.set{ch_in_region_bed}.view()
 }
 
 
