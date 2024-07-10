@@ -375,7 +375,7 @@ else if (params.in_regions != "Not_specified"){
   ch_for_in_regions.set{ch_in_regions}
 }
 else{
-  ch_in_regions=Channel.of('No_file')
+  ch_in_regions=Channel.from('No_file')
 }
 
 /*
