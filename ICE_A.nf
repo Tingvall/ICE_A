@@ -753,8 +753,8 @@ process INTERACTION_PEAK_INTERSECT {
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor1_extended_nonneg.bed -b $peak_beds > Anchor_1_peak_collect_extended.bed
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds > Anchor_2_peak_collect_extended.bed
 
-    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
-    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
     """
 
   else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions == "Not_specified"))
@@ -767,8 +767,8 @@ process INTERACTION_PEAK_INTERSECT {
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_1_peak_collect_extended.bed
     bedtools intersect -wa -wb -a bed2D_anno_split_anchor2_extended_nonneg.bed -b $peak_beds -names $sample > Anchor_2_peak_collect_extended.bed
 
-    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect_extended.bed
-    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect_extended.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_1_peak_collect_extended.bed > Anchor_1_peak_collect.bed
+    awk '{\$2+=${close_peak_distance};\$3-=${close_peak_distance}}1' OFS='\t' Anchor_2_peak_collect_extended.bed > Anchor_2_peak_collect.bed
     """
 
   else if (params.close_peak_type == 'distance' && (params.mode == 'multiple' && params.in_regions != "Not_specified"))
