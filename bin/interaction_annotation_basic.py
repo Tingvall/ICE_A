@@ -22,11 +22,12 @@ argParser.add_argument('--complete', dest="COMPLETE", help="If set to true, all 
 argParser.add_argument('--binsize', dest="BINSIZE", help="Specifies interaction binsize (default: 5000)", type=int)
 argParser.add_argument('--promoter_start', dest="PROMOTER_START", help="Specifies the upstream of TSS considered as a promoter (default: 2500).", type=int)
 argParser.add_argument('--promoter_end', dest="PROMOTER_END", help="Specifies the downstream of TSS considered as a promoter (default: 2500).", type=int)
+argParser.add_argument('--in_regions', dest="IN_REGIONS", help="Specify regions to filter input beds. Defult:Not_specified")
 
 args = argParser.parse_args()
 
 # DEFINE FUNCTION
-def interaction_annotation_basic(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, sample, network, complete, binsize, promoter_start, promoter_end):
+def interaction_annotation_basic(anchor_1_peak_collect, anchor_2_peak_collect, bed2D_index_anno, prefix, sample, network, complete, binsize, promoter_start, promoter_end, in_regions):
 
     # Column names for loaded data
     anchor1_peak_name = ('Anchor1_Chr', 'Anchor1_Start', 'Anchor1_End', 'Peak1_Chr', 'Peak1_Start', 'Peak1_End', 'Peak1_ID', 'Peak1_score')
@@ -80,4 +81,4 @@ def interaction_annotation_basic(anchor_1_peak_collect, anchor_2_peak_collect, b
 
 
 # RUN FUNCTION
-interaction_annotation_basic(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, sample=args.SAMPLE, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END)
+interaction_annotation_basic(anchor_1_peak_collect=args.ANCHOR1_PEAK,anchor_2_peak_collect=args.ANCHOR2_PEAK,bed2D_index_anno=args.BED2D, prefix=args.PREFIX, sample=args.SAMPLE, network=args.NETWORK, complete=args.COMPLETE, binsize=args.BINSIZE, promoter_start=args.PROMOTER_START, promoter_end=args.PROMOTER_END, in_regions=args.IN_REGIONS)
