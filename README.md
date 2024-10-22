@@ -85,6 +85,7 @@ nextflow run ICE_A.nf --help
 #### Optional input
 | Input | Description |
 | --- | --- |
+| `--in_regions` | Bed file with region to filter input file by. If "consensus", all input beds will be merged and the consensus peak set will be used.  |
 | `--genes` | Only used when the option `--filtering_genes` is specified or if `--network_mode` is set to `genes`. Text file with gene symbols, that is used for filtering of interactions associated with the specified genes. The filtering is performed during plotting of Upset and Circos plot (if `--filtering_genes` is specified) and for network visualization (if `--network_mode` is set to `genes`). |
 | `--bed2D_anno` | Specifies path to annotated 2D-bed file if `--skip_anno` is used. |
 | `--peak_differential` | Path to textfile that contain log2FC and adjusted p-value from differential analysis. The 1st column should contain peakID matching the peakID in the 4th column of the input bed file. Standard DESeq2 output is expected (with log2FC in the 3rd column and padj in the 9th column), but other formats are accepted as well is the column corresponding to log2FC and padj are specified with the arguments `--log2FC_column` and `--padj column`. |
@@ -106,30 +107,44 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | --- | --- |
 | `--mode` | Define which mode to run the pipeline in. The options are basic (default), multiple or differential. |
 | `--outdir` | Specifies the output directory (default: ./results). |
+|`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
+|`--binsize` | Bin size used for interaction anchor points (default: 5000). |
+| `--interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
+| `--prefix` | Prefix used for interactions (default: PLACseq).|
+| `--env` | Conda environment. Default: "ICE_A_env" |
+| `--tss` | Custom tss positions to use for target gene assignment (For example see: [tss.txt](example_files/tss.txt)). Default: "default". |
+| `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
+| `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
+| `--help` | Help message is shown. |
+
+| `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
+| `--multiple_anno` | Defines how to handle peaks annotated to more than one gene. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default: concentrate.|
+| `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
+| `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
+
+
 |`--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
 |`--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
 |`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
-|`--binsize` | Bin size used for interaction anchor points (default: 5000). |
-|`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
 |`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are overlap (interactions that overlap with peak), bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: overlap. |
 |`--close_peaks_distance` | Specify distance for peak annotation with close interaction. If --close_peaks_type is bin the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 0. |
 |`--close_promoter_type` | Specifies how to handle interactions close to promoters. Options are overlap (interactions that overlap with promoter regions specified by promoter start/end), bin (based on number of bins) or distance (distance from promoter start/end to bin). Default: overlap. |
 |`--close_promoter_bin` | If --close_promoter_type is bin, the option specifies number of bins +/- the overlapping bin. Default: 0. |
 |`--close_promoter_start` | If --close_promoter_type is distance, the option specifies distance upstream of promoter to close interaction. Default: 2500.|
 |`--close_promoter_end` | If --close_promoter_type is distance, the option specifies distance downstream of promoter to close interaction. Default: 2500. |
-| `--prefix` | Prefix used for interactions (default: PLACseq).|
-| `--interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
-| `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
-| `--multiple_anno` | Defines how to handle peaks annotated to more than one gene. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default: concentrate.|
-| `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
-| `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
+| `--filter_close` | Depending on the close peak/promoter options, the same peak can be annotated to the same gene from interactions in neighboring bins. This options specifies how to handle this: no_filter (no filtering), peak (filter on peak_bin_distance firs and than TSS_bin_distance), tss (filter on TSS_bin_distance firs and than peak_bin_distance) or sum (sum of absolite values of peak_bin_distance and TSS_bin_distance). Default: "sum". |
+
+
+#### Visualization
+| Argument | Description |
+| --- | --- |
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
 | `--network_mode` | Defines mode network. Options are a (all interaction in the 2D-bed file), f (all interaction with at least on peak overlap either anchor point), g (interactions associates with a gene list, provided by `--genes`) or fg (combination of option f and g). In differential mode, the options e (filter on differetially expressed genes) or d (filter on differential peaks) are also available.|
 | `--promoter_promoter` | If set to true, promoter-promoter interactions included in network (default: false). |
+| `--network_distal_only` | Only include distal factor binding in network, Default: false. |
 |`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
-| `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
-| `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
-| `--help` | Help message is shown. |
+
+
 
 ### Multiple mode specific arguments
 When the pipeline is run in multiple mode, some additional processes based on peak overlap are available. The specific parameters for these processes are listed below:
@@ -140,6 +155,8 @@ When the pipeline is run in multiple mode, some additional processes based on pe
 | `--upset_plot` | If specified, Upset plot of peak overlap will be created. Only valid if `--complete` is set to false. |
 | `--circos_plot` | If specified, Circos plot of peak overlap will be created. Only valid if `--complete` is set to false. |
 | `--filter_genes` | Specifies if additional plot (Upset and/or Circos plots) should be created based on interactions filtered by provided gene list (default: false). This option requires that a gene list is provided with the argument `--genes`. |
+| `-circos_use_promoters` | Use promoters definition to look for TF occupancy in proximal regions in circos plot. Only valid when `--in_regions` if specified. Default: false|
+
 
 ### Differential mode specific arguments
 When the pipeline is run in differential mode, some additional processes based on peak overlap are available. The specific parameters for these processes are listed below:
