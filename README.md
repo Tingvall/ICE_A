@@ -102,27 +102,29 @@ nextflow run ICE_A.nf --bed2D interactions.bed  --genome mm10 --peaks peaks.txt
 ```
 The default mode is basic, to run the pipeline in another mode specify it with the argument `mode`.
 
-#### Arguments
+#### Generall arguments
 | Argument | Description |
 | --- | --- |
 | `--mode` | Define which mode to run the pipeline in. The options are basic (default), multiple or differential. |
+| `--prefix` | Prefix used for interactions (default: PLACseq).|
 | `--outdir` | Specifies the output directory (default: ./results). |
+| `--env` | Conda environment. Default: "ICE_A_env" |
+| `--tss` | Custom tss positions to use for target gene assignment (For example see: [tss.txt](example_files/tss.txt)). Default: "default". |
 |`--interaction_threshold` | Lower interaction distance threshold, regions with a distance to the closest TSS < interaction_threshold will be proximity annotated (default: 2*binsize). |
 |`--binsize` | Bin size used for interaction anchor points (default: 5000). |
 | `--interaction_score_column` | Column that contain interaction score (e.g. q-value). Default: 9 (FitHiChIP output format). |
-| `--prefix` | Prefix used for interactions (default: PLACseq).|
-| `--env` | Conda environment. Default: "ICE_A_env" |
-| `--tss` | Custom tss positions to use for target gene assignment (For example see: [tss.txt](example_files/tss.txt)). Default: "default". |
 | `--complete` | If set to true, all available processes for the selected mode and provided inputs are run.|
 | `--save_tmp` | If used, all intermediate files are saved in the directory ./tmp. Can be useful for investigating problems. Default: false.
 | `--help` | Help message is shown. |
 
-| `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false) |
+#### Annotation arguments
+| Argument | Description |
+| --- | --- |
+| `--proximity_unannotated` | Specifies if unannotated distal peaks should be annotated by proximity annotation (default: false). |
 | `--multiple_anno` | Defines how to handle peaks annotated to more than one gene. Options are keep (all annotations are kept with one row for each annotation), concentrate (the annotated peak file is concentrated to only include one row per peak but information about all annotations are kept) and one_annotation (only one annotation per peak is kept. The priority order for option one_annotation is: Promoter, Interaction (lowest q-value) and Proximity annotation)). Default: concentrate.|
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
 | `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
-
-
+| --- | --- |
 |`--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
 |`--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
 |`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
@@ -135,7 +137,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--filter_close` | Depending on the close peak/promoter options, the same peak can be annotated to the same gene from interactions in neighboring bins. This options specifies how to handle this: no_filter (no filtering), peak (filter on peak_bin_distance firs and than TSS_bin_distance), tss (filter on TSS_bin_distance firs and than peak_bin_distance) or sum (sum of absolite values of peak_bin_distance and TSS_bin_distance). Default: "sum". |
 
 
-#### Visualization
+#### Visualization arguments
 | Argument | Description |
 | --- | --- |
 | `--network` | Specifies if files for network visualization in Cytoscape should be created. Only valid if `--complete` is set to false. |
