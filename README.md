@@ -125,15 +125,15 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--skip_anno` | If you already have an annotated 2D-bed file from a previous run, you can skip the HOMER annotation of the interactions by using this argument. Requires specification of path to annotated 2D-bed by using the argument `--bed2D_anno`. |
 | `--annotate_interactions` | Specifies if interaction-centered annotation with peak overlap should be performed. Only valid if `--complete` is set to false. |
 | --- | --- |
-|`--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
-|`--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
-|`--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
-|`--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are overlap (interactions that overlap with peak), bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: overlap. |
-|`--close_peaks_distance` | Specify distance for peak annotation with close interaction. If --close_peaks_type is bin the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 0. |
-|`--close_promoter_type` | Specifies how to handle interactions close to promoters. Options are overlap (interactions that overlap with promoter regions specified by promoter start/end), bin (based on number of bins) or distance (distance from promoter start/end to bin). Default: overlap. |
-|`--close_promoter_bin` | If --close_promoter_type is bin, the option specifies number of bins +/- the overlapping bin. Default: 0. |
-|`--close_promoter_start` | If --close_promoter_type is distance, the option specifies distance upstream of promoter to close interaction. Default: 2500.|
-|`--close_promoter_end` | If --close_promoter_type is distance, the option specifies distance downstream of promoter to close interaction. Default: 2500. |
+| `--promoter_start` | Specifies the distance upstreams of TSS considered as a promoter (default: 2500). |
+| `--promoter_end` | Specifies the distance downstream of TSS considered as a promoter (default: 2500). |
+| `--skip_promoter_promoter` | If true, skip interaction-based annotation of peaks in promoter regions (default:false). |
+| `--close_peaks_type` | Specifies how to handle interactions close to peaks. Options are overlap (interactions that overlap with peak), bin (based on number of bins) or distance (distance from peaks start/end to bin). Default: overlap. |
+| `--close_peaks_distance` | Specify distance for peak annotation with close interaction. If --close_peaks_type is bin the option specifies number of bins +/- overlapping bin and if close_peaks_type is distance it specifies distance from peak start/end to bin. Default: 0. |
+| `--close_promoter_type` | Specifies how to handle interactions close to promoters. Options are overlap (interactions that overlap with promoter regions specified by promoter start/end), bin (based on number of bins) or distance (distance from promoter start/end to bin). Default: overlap. |
+| `--close_promoter_bin` | If --close_promoter_type is bin, the option specifies number of bins +/- the overlapping bin. Default: 0. |
+| `--close_promoter_start` | If --close_promoter_type is distance, the option specifies distance upstream of promoter to close interaction. Default: 2500.|
+| `--close_promoter_end` | If --close_promoter_type is distance, the option specifies distance downstream of promoter to close interaction. Default: 2500. |
 | `--filter_close` | Depending on the close peak/promoter options, the same peak can be annotated to the same gene from interactions in neighboring bins. This options specifies how to handle this: no_filter (no filtering), peak (filter on peak_bin_distance firs and than TSS_bin_distance), tss (filter on TSS_bin_distance firs and than peak_bin_distance) or sum (sum of absolite values of peak_bin_distance and TSS_bin_distance). Default: "sum". |
 
 
@@ -144,7 +144,7 @@ The default mode is basic, to run the pipeline in another mode specify it with t
 | `--network_mode` | Defines mode network. Options are a (all interaction in the 2D-bed file), f (all interaction with at least on peak overlap either anchor point), g (interactions associates with a gene list, provided by `--genes`) or fg (combination of option f and g). In differential mode, the options e (filter on differetially expressed genes) or d (filter on differential peaks) are also available.|
 | `--promoter_promoter` | If set to true, promoter-promoter interactions included in network (default: false). |
 | `--network_distal_only` | Only include distal factor binding in network, Default: false. |
-|`--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
+| `--use_peakscore` | If set to true, peak scores will be used to set edge width in network visualization. Default: false. |
 
 
 
@@ -239,7 +239,7 @@ For all three modes, there is the option to visualize the interaction in a netwo
 
 
 ### Co-occupancy (only created in multiple mode)
-If run in multiple mode, overlap between sets of regions (e.g. co-occupancy of multiple transcriptional regulators) are investigated. In addition to performing an annotation of every peak file, multiple mode identifies overlaps defined either at the bin level or based on overlaps with customized regions (user-provided or a union of input bed files). 
+If run in multiple mode, overlap between sets of regions (e.g. co-occupancy of multiple transcriptional regulators) are investigated. In addition to performing an annotation of every peak file, multiple mode identifies overlaps defined either at the bin level or based on overlaps with customized regions (user-provided or a union of input bed files). Co-occupancy can be visualized in the form of Upset plots (overlap at promoter/distal elements) and Circos plot (overlap at interacting distal/promoter regions). It is possible to use the defined promoter regions for the Circos plot by specifying `-circos_use_promoters`. If `--genes`is specified, the plots are also generated for regions associated with the provided gene set.
 
 <details>
 <summary>Output files</summary>
@@ -257,6 +257,7 @@ If run in multiple mode, overlap between sets of regions (e.g. co-occupancy of m
 
 
 ### Differential expression associated peaks (only created in differential mode)
+If running in differtial mode and corresponding gene expression data is provided, distally located peaks associated with changes in gene expression can be identified, as well as being categorized as activating or repressive. 
 
 <details>
 <summary>Output files</summary>
