@@ -187,7 +187,13 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
 
 ### Annotation
 
-<details>
+#### Annotated peak file
+The main output of ICE_A is the annotated peak file which is found in the `Peak_annotation/` directory. If several input peak files are provided, an annotated peak file will be available for each input bed file. The output is a text file with the peak coordinates and score (if available) from the original bed file. For each peak, information about which gene(s) it is annotated to is included (EntrezID, Refseq, Ensemble, symbol). The category of each peak based on distance to closest promoter is also specifies with the options: Promoter (specified by `--promoter_start` and `promoter_end`), Proximal (peaks not in promoter but with a distance to TSS below `--interaction_threshold`) or Distal.  In addition, the type of annotation used for that particular peak is provided, with the options: Proximal_anno (for peaks in promoters and below the specified interaction threshold (default 2*binsize), or for distal peaks not annotated by interaction-based annotation if `--proximity_unannotated` is specified), Interaction_anno (annotation based on interaction in the 2D-bed). For interaction-based annotation, an interaction score (e.g. q-value) for the interaction is included (column containing score can be specified with `--interaction_score_column`. If not provided, the default score for all interactions are 1). It is possible to include interactions where the anchor points are not overlapping but are close in distance with the peak and/or the TSS (specified with `--close_peak_distance` and `--close_promoter_distance_start/end`). The annotated peak file also include columns that specify the distance to the interactions as well as in which bin the interaction is located in relation to the peak/promoter. If `--in_regions` is specified, the input regions are filtered for regions overlapping the provided file. In differential mode, additional files for the differential peaks (UP/DOWN) are created and additional columns for log2FC and adjusted p-values for the differential peaks are present.
+
+#### Gene list
+In addition to the annotated peak file(s), a gene list that contain all genes annotated to the peaks. This gene list can for example be used for gene ontology enrichment analysis.
+
+ <details>
   <summary>Output files</summary>
 
 - `<outdir>/Peak_annotation/`
@@ -195,18 +201,7 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
   - `<sample>_<prefix>_annotated_genelist.txt`: List of all target genes. 
   - `REGIONS_<prefix>_annotated.txt` (optional, if `--in_regions` is specified): Annotated regions specified with `--in_regions`.
   - `ALL_<prefix>_annotated.txt`: (optional, if run in multiple mode and if `--in_regions` is specified): Annotated regions specified with `--in_regions`, including information about overlap with input bed files.
-
-
 </details>
-
-
-#### Annotated peak file
-The main output of ICE_A is the annotated peak file which is found in the `Peak_annotation/` directory. If several input peak files are provided, an annotated peak file will be available for each input bed file. The output is a text file with the peak coordinates and score (if available) from the original bed file. For each peak, information about which gene(s) it is annotated to is included (EntrezID, Refseq, Ensemble, symbol). The category of each peak based on distance to closest promoter is also specifies with the options: Promoter (specified by `--promoter_start` and `promoter_end`), Proximal (peaks not in promoter but with a distance to TSS below `--interaction_threshold`) or Distal.  In addition, the type of annotation used for that particular peak is provided, with the options: Proximal_anno (for peaks in promoters and below the specified interaction threshold (default 2*binsize), or for distal peaks not annotated by interaction-based annotation if `--proximity_unannotated` is specified), Interaction_anno (annotation based on interaction in the 2D-bed). For interaction-based annotation, an interaction score (e.g. q-value) for the interaction is included (column containing score can be specified with `--interaction_score_column`. If not provided, the default score for all interactions are 1). It is possible to include interactions where the anchor points are not overlapping but are close in distance with the peak and/or the TSS (specified with `--close_peak_distance` and `--close_promoter_distance_start/end`). The annotated peak file also include columns that specify the distance to the interactions as well as in which bin the interaction is located in relation to the peak/promoter. If `--in_regions` is specified, the input regions are filtered for regions overlapping the provided file. In differential mode, additional files for the differential peaks (UP/DOWN) are created and additional columns for log2FC and adjusted p-values for the differential peaks are present.
-
-#### Gene list
-In addition to the annotated peak file(s), a gene list that contain all genes annotated to the peaks. This gene list can for example be used for gene ontology enrichment analysis.
-
- 
 
 
 ### Interaction annotation
