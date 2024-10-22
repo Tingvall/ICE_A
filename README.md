@@ -191,8 +191,12 @@ All outputs are placed in the direcory specified by `--outdir`. Depending on the
   <summary>Output files</summary>
 
 - `<outdir>/Peak_annotation/`
-  - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s)
-  - `<sample>_<prefix>_annotated_genelist.txt`: Genelist
+  - `<sample>_<prefix>_annotated.txt`: Annotated peak file(s).
+  - `<sample>_<prefix>_annotated_genelist.txt`: List of all target genes. 
+  - `REGIONS_<prefix>_annotated.txt` (optional, if `--in_regions` is specified): Annotated regions specified with `--in_regions`.
+  - `ALL_<prefix>_annotated.txt`: (optional, if run in multiple mode and if `--in_regions` is specified): Annotated regions specified with `--in_regions`, including information about overlap with input bed files.
+
+
 </details>
 
 
@@ -219,6 +223,7 @@ The primary function for ICE_A is to perform peak-centered annotation using chro
 
 
 ### Network visualization
+For all three modes, there is the option to visualize the interaction in a network format using Cytoscape (Shannon et al. 2003). If provided, interaction and/or peak scores can be represented by edge weight. If run in Differential mode, the network can be filtered according to differentially expressed genes, and separate networks for annotations associated with up- and down-regulated genes can be generated. In addition to the PDF output of the default network layout, ICE-A also provides the network xGMML files to be loaded into Cytoscape for visualization and customization in an interactive format. 
 
 <details>
 <summary>Output files</summary>
@@ -234,6 +239,7 @@ The primary function for ICE_A is to perform peak-centered annotation using chro
 
 
 ### Co-occupancy (only created in multiple mode)
+If run in multiple mode, overlap between sets of regions (e.g. co-occupancy of multiple transcriptional regulators) are investigated. In addition to performing an annotation of every peak file, multiple mode identifies overlaps defined either at the bin level or based on overlaps with customized regions (user-provided or a union of input bed files). 
 
 <details>
 <summary>Output files</summary>
