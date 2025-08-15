@@ -364,7 +364,7 @@ process OVERLAP_REGIONS_0 {
 
   script:
     """
-    cat $peak_beds > peaks_all.beds
+    cat $peak_beds > peaks_all.bed
     cut -f1-3 peaks_all.bed | sort -k1,1 -k2,2n > peaks_all_sort.bed
     bedtools merge -i peaks_all_sort.bed > consensus_in_regions.bed
     """
